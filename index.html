@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>競艇予想システム Ver.0.3</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif}
+header{background:#111827;color:#fff;padding:15px;font-weight:700;position:sticky;top:0;z-index:3}
+main{max-width:1000px;margin:auto;padding:10px}.card{background:#fff;border-radius:14px;padding:14px;margin:10px 0;box-shadow:0 1px 5px #0001}
+h2{font-size:19px;margin:3px 0 12px}h3{font-size:16px;margin:15px 0 8px}.muted{font-size:12px;color:#64748b}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+input,select,button{width:100%;padding:10px;border-radius:9px;font-size:14px}input,select{border:1px solid #cbd5e1;background:#fff}button{border:0;background:#111827;color:#fff;font-weight:700;margin-top:8px}.secondary{background:#475569}
+.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:12px;min-width:760px}th,td{padding:7px 5px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:middle}
+.badge{display:inline-block;padding:3px 7px;border-radius:99px;background:#e2e8f0;font-size:11px}.status{padding:10px;border-radius:9px;background:#fef3c7;margin-top:9px}.blue{background:#dbeafe}.green{background:#dcfce7}.red{background:#fee2e2}
+.hide{display:none}.score{font-weight:700;font-size:16px}
+</style>
+</head>
+<body>
+<header>競艇予想・検証システム Ver.0.3　— データ管理土台</header>
+<main>
+
+<section class="card">
+<h2>① レース基本情報</h2>
+<div class="grid2">
+<input id="venue" placeholder="開催場">
+<input id="race" type="number" min="1" max="12" placeholder="R">
+</div>
+<div class="grid3">
+<input id="wind" placeholder="風速 m">
+<input id="wave" placeholder="波高 cm">
+<input id="water" placeholder="水温 ℃">
+</div>
+<div class="grid2">
+<input id="tide" placeholder="潮・干満など">
+<input id="tilt" placeholder="チルト">
+</div>
+<div class="status blue">
+公式の出走表には全国・当地成績、平均ST、モーター・ボートの2連対率/3連対率などが掲載されます。モーターは使用選手履歴を追える場もあります。citeturn0search4turn0search0
+</div>
+</section>
+
+<section class="card">
+<h2>② 6艇データ</h2>
+<p class="muted">ここでは「何を記録するか」を固定します。数値の重みはまだ決めません。</p>
+<div class="tablewrap">
+<table>
+<thead><tr>
+<th>艇</th><th>選手</th><th>級別</th><th>全国勝率</th><th>当地勝率</th><th>平均ST</th><th>モーターNo</th><th>モーター2連率</th><th>ボート2連率</th>
+</tr></thead>
+<tbody id="boats"></tbody>
+</table>
+</div>
+</section>
+
+<section class="card">
+<h2>③ モーター履歴・整備情報</h2>
+<p class="muted">「モーターが強い」だけで終わらせず、誰が使っていたか・前節からどう変化したかを残すための欄です。公式系モーターデータでも使用選手履歴を確認できる例があります。citeturn0search0turn0search2</p>
+<div class="tablewrap">
+<table>
+<thead><tr>
+<th>艇</th><th>前節使用者</th><th>前々節使用者</th><th>前節成績</th><th>整備内容</th><th>中間整備</th><th>前検タイム</th><th>出足</th><th>伸び</th><th>回り足</th>
+</tr></thead>
+<tbody id="motor"></tbody>
+</table>
+</div>
+<button onclick="saveDraft()">入力内容を保存</button>
+<button class="secondary" onclick="loadDraft()">保存内容を読み込み</button>
+<div id="saveMsg" class="status hide"></div>
+</section>
+
+<section class="card">
+<h2>④ データ品質チェック</h2>
+<div id="quality" class="status">まだチェックしていません。</div>
+<button onclick="qualityCheck()">入力漏れを確認</button>
+</section>
+
+<section class="card">
+<h2>⑤ 次の予想計算へ渡すデータ</h2>
+<p class="muted">ここではまだ勝率を決めません。次のVer.で「選手・モーター・環境・展示」を正規化して、全周展開モデルへ渡します。</p>
+<div class="grid3">
+<div class="status">選手要素<br><b id="qc1">0</b>項目</div>
+<div class="status">モーター要素<br><b id="qc2">0</b>項目</div>
+<div class="status">環境要素<br><b id="qc3">0</b>項目</div>
+</div>
+</section>
+
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const boats=[1,2,3,4,5,6];
+function make(){
+ $("boats").innerHTML=boats.map(i=>`<tr>
+<td><b>${i}</b></td>
+<td><input id="name${i}" placeholder="選手名"></td>
+<td><input id="class${i}" placeholder="A1/B1"></td>
+<td><input id="nat${i}" type="number" step="0.01" placeholder="勝率"></td>
+<td><input id="local${i}" type="number" step="0.01" placeholder="当地"></td>
+<td><input id="st${i}" type="number" step="0.01" placeholder="ST"></td>
+<td><input id="motorNo${i}" type="number" placeholder="No"></td>
+<td><input id="motor2${i}" type="number" step="0.01" placeholder="%"></td>
+<td><input id="boat2${i}" type="number" step="0.01" placeholder="%"></td>
+</tr>`).join("");
+ $("motor").innerHTML=boats.map(i=>`<tr>
+<td><b>${i}</b></td>
+<td><input id="prev${i}" placeholder="氏名"></td>
+<td><input id="prev2${i}" placeholder="氏名"></td>
+<td><input id="prevResult${i}" placeholder="例 1着2回"></td>
+<td><input id="maint${i}" placeholder="整備内容"></td>
+<td><input id="mid${i}" placeholder="有/無・内容"></td>
+<td><input id="preTime${i}" type="number" step="0.01" placeholder="秒"></td>
+<td><input id="start${i}" placeholder="弱/中/強"></td>
+<td><input id="stretch${i}" placeholder="弱/中/強"></td>
+<td><input id="turn${i}" placeholder="弱/中/強"></td>
+</tr>`).join("");
+}
+make();
+
+const ids=()=>[...document.querySelectorAll("input,select")].map(x=>x.id).filter(Boolean);
+function saveDraft(){
+ const d={};ids().forEach(id=>d[id]=$(id).value);localStorage.setItem("boat_v03_draft",JSON.stringify(d));
+ $("saveMsg").classList.remove("hide");$("saveMsg").textContent="このiPhoneのブラウザに入力内容を保存しました。";
+}
+function loadDraft(){
+ const d=JSON.parse(localStorage.getItem("boat_v03_draft")||"{}");
+ Object.keys(d).forEach(id=>{if($(id))$(id).value=d[id]});
+ $("saveMsg").classList.remove("hide");$("saveMsg").textContent=Object.keys(d).length?"保存内容を読み込みました。":"保存データはありません。";
+}
+function qualityCheck(){
+ let missing=0;
+ boats.forEach(i=>{
+   ["name","class","nat","local","st","motorNo","motor2","boat2","prev","preTime"].forEach(k=>{if(!$(k+i).value)missing++});
+ });
+ const env=["venue","race"].filter(id=>!$(id).value).length;
+ missing+=env;
+ $("quality").className="status "+(missing?"red":"green");
+ $("quality").innerHTML=missing?`未入力・不足項目：<b>${missing}</b>。現時点では予想計算に進めない状態です。`:"必須土台項目は入力済みです。次の計算工程へ進めます。";
+ $("qc1").textContent=boats.length*5;
+ $("qc2").textContent=boats.length*9;
+ $("qc3").textContent=6;
+}
+</script>
+</body>
+</html>
