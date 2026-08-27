@@ -884,131 +884,218 @@ function generateRaceFlow(evals){
    着順確率 Ver.2
    総合評価＋艇番＋ST＋モーター＋展示を反映
 ========================================= */
+/* =========================================
+   ⑧ 着順確率計算
+   日本語でいうと：
+   「6艇それぞれが1着～6着になる確率」を計算する部分
+========================================= */
+
 function calculateFinishProbabilities(evals){
 
-  const result={};
+  // 6艇それぞれの「1着～6着」の結果を入れる場所
+  const result = {};
 
-  boatNumbers.forEach(i=>{
-    result[i]=Array(6).fill(0);
-  });
-
-  /*
-    基本ウェイト
-
-    総合評価
-    ＋ ST
-    ＋ モーター
-    ＋ 展示
-    ＋ 艇番補正
-  */
-
-  const weights={};
-
-  evals.forEach(e=>{
-
-    const boat=e.boat;
-
-    const st=num("st"+boat);
-    const motor=num("motor2_"+boat);
-    const exhibition=e.exhibition;
-
-    /*
-      総合評価
-    */
-    let weight=e.total;
-
-    /*
-      ST補正
-      速いほど有利
-    */
-    const stScore=
-      clamp((0.20-st)/0.12,0,1);
-
-    weight += stScore*0.12;
-
-    /*
-      モーター補正
-    */
-    const motorScore=
-      clamp(motor/60,0,1);
-
-    weight += motorScore*0.08;
-
-    /*
-      展示補正
-    */
-    weight += exhibition*0.08;
-
-    /*
-      1号艇イン有利
-    */
-    if(boat===1){
-      weight += 0.08;
-    }
-
-    /*
-      2～4号艇
-      差し・まくり差し等を考慮
-    */
-    if(boat>=2 && boat<=4){
-      weight += 0.025;
-    }
-
-    /*
-      5・6号艇
-      外枠補正
-    */
-    if(boat>=5){
-      weight -= 0.025;
-    }
-
-    /*
-      ウェイトを確率計算用に変換
-    */
-    weights[boat]=Math.exp(weight*7);
-
+  boatNumbers.forEach(boat => {
+    result[boat] = [0,0,0,0,0,0];
   });
 
 
-  /*
-    Monte Carlo
-    50,000回シミュレーション
-  */
+  /* =========================================
+     ① 6艇の「順位決定力」を作る
+     
+     総合評価を中心に、
+     ・スタート評価
+     ・モーター評価
+     ・展示評価
+     ・環境評価
+     ・艇番
+     
+     を反映する
+  ========================================= */
 
-  const iterations=50000;
+  const weights = {};
 
-  for(let n=0;n<iterations;n++){
+  evals.forEach(e => {
 
-    const remaining=[...boatNumbers];
-    const ranking=[];
+    const boat = e.boat;
 
-    while(remaining.length){
+    /*
+      基本は⑥総合評価
+    */
+    let score = e.total;
 
-      let totalWeight=0;
 
-      remaining.forEach(b=>{
-        totalWeight+=weights[b];
+    /* =========================================
+       ② スタート評価
+       STが速いほどプラス
+    ========================================= */
+
+    const st = num("st"+boat);
+
+    if(Number.isFinite(st)){
+
+      const stScore =
+        clamp((0.20 - st) / 0.10, 0, 1);
+
+      score += stScore * 0.10;
+
+    }
+
+
+    /* =========================================
+       ③ モーター評価
+       モーター2連率が高いほどプラス
+    ========================================= */
+
+    const motor2 = num("motor2_"+boat);
+
+    if(Number.isFinite(motor2)){
+
+      const motorScore =
+        clamp(motor2 / 60, 0, 1);
+
+      score += motorScore * 0.07;
+
+    }
+
+
+    /* =========================================
+       ④ 展示評価
+    ========================================= */
+
+    score += e.exhibition * 0.08;
+
+
+    /* =========================================
+       ⑤ 環境評価
+       
+       風・波などを考慮した⑥環境評価を反映
+    ========================================= */
+
+    score += e.environment * 0.05;
+
+
+    /* =========================================
+       ⑥ 艇番補正
+       
+       1号艇はイン有利を少し反映
+       2～4号艇は攻め・差しの候補
+       5～6号艇は外枠の不利を少し反映
+    ========================================= */
+
+    if(boat === 1){
+
+      score += 0.08;
+
+    }else if(boat >= 2 && boat <= 4){
+
+      score += 0.025;
+
+    }else{
+
+      score -= 0.025;
+
+    }
+
+
+    /*
+      マイナス防止
+    */
+    score = Math.max(score, 0.01);
+
+
+    /*
+      確率計算用のウェイトに変換
+
+      スコア差をある程度順位確率に反映する
+    */
+    weights[boat] =
+      Math.exp(score * 6);
+
+  });
+
+
+  /* =========================================
+     ⑦ 順位シミュレーション
+     
+     6艇から1着を決める
+     ↓
+     残った5艇から2着を決める
+     ↓
+     残った4艇から3着
+     ↓
+     …
+     
+     これを50,000回繰り返す
+  ========================================= */
+
+  const iterations = 50000;
+
+
+  for(let n = 0; n < iterations; n++){
+
+    const remaining = [...boatNumbers];
+
+    const ranking = [];
+
+
+    /* =========================================
+       順位を1着～6着まで決める
+    ========================================= */
+
+    while(remaining.length > 0){
+
+      let totalWeight = 0;
+
+
+      /*
+        残っている艇のウェイト合計
+      */
+      remaining.forEach(boat => {
+
+        totalWeight += weights[boat];
+
       });
 
-      let r=Math.random()*totalWeight;
 
-      let selected=remaining[remaining.length-1];
+      /*
+        ランダム値を作る
+      */
+      let random =
+        Math.random() * totalWeight;
 
-      for(const b of remaining){
 
-        r-=weights[b];
+      let selected =
+        remaining[remaining.length - 1];
 
-        if(r<=0){
 
-          selected=b;
+      /*
+        ウェイトに応じて艇を選択
+      */
+      for(const boat of remaining){
+
+        random -= weights[boat];
+
+        if(random <= 0){
+
+          selected = boat;
+
           break;
 
         }
 
       }
 
+
+      /*
+        今回の順位に追加
+      */
       ranking.push(selected);
 
+
+      /*
+        選ばれた艇を残りから削除
+      */
       remaining.splice(
         remaining.indexOf(selected),
         1
@@ -1016,12 +1103,12 @@ function calculateFinishProbabilities(evals){
 
     }
 
-    /*
-      シミュレーション結果を
-      着順別にカウント
-    */
 
-    ranking.forEach((boat,rank)=>{
+    /* =========================================
+       ⑧ シミュレーション結果を記録
+    ========================================= */
+
+    ranking.forEach((boat, rank) => {
 
       result[boat][rank]++;
 
@@ -1030,25 +1117,41 @@ function calculateFinishProbabilities(evals){
   }
 
 
-  /*
-    件数 → 確率へ変換
-  */
+  /* =========================================
+     ⑨ 件数を「％」に変換
+     
+     例：
+     1号艇が1着になった回数 12,500回
+     ÷ 50,000回
+     = 25%
+  ========================================= */
 
-  boatNumbers.forEach(i=>{
+  boatNumbers.forEach(boat => {
 
-    result[i]=result[i].map(
-      v=>v/iterations
-    );
+    result[boat] =
+      result[boat].map(count => {
+
+        return count / iterations;
+
+      });
 
   });
 
 
-  /*
-    各着順の合計は
-    Monte Carloの結果だけで
-    ほぼ100%になるため、
-    追加の正規化は行わない。
-  */
+  /* =========================================
+     ⑩ 各着順の合計を確認
+     
+     1着：
+     1～6号艇を全部足すと100%
+     
+     2着：
+     1～6号艇を全部足すと100%
+     
+     …という状態になる
+     
+     Monte Carloの性質上ほぼ100%になるため、
+     無理な再正規化はしない。
+  ========================================= */
 
   return result;
 
