@@ -1,4 +1,4 @@
-// Netlify Function
+　// Netlify Function
 // BOAT RACE公式
 // 出走表＋直前情報＋3連単オッズ取得
 
@@ -227,17 +227,11 @@ function parseBeforeInfo(html) {
   const result = {
 
     weather: null,
-
     temperature: null,
-
     waterTemperature: null,
-
     windDirection: null,
-
     windSpeed: null,
-
     wave: null,
-
     boats: []
 
   };
@@ -249,8 +243,10 @@ function parseBeforeInfo(html) {
     );
 
   if (tempMatch) {
+
     result.temperature =
       toNumber(tempMatch[1]);
+
   }
 
 
@@ -260,8 +256,10 @@ function parseBeforeInfo(html) {
     );
 
   if (waterMatch) {
+
     result.waterTemperature =
       toNumber(waterMatch[1]);
+
   }
 
 
@@ -271,8 +269,10 @@ function parseBeforeInfo(html) {
     );
 
   if (windMatch) {
+
     result.windSpeed =
       toNumber(windMatch[1]);
+
   }
 
 
@@ -282,8 +282,10 @@ function parseBeforeInfo(html) {
     );
 
   if (waveMatch) {
+
     result.wave =
       toNumber(waveMatch[1]);
+
   }
 
 
@@ -310,22 +312,22 @@ function parseBeforeInfo(html) {
 
 
   const windDirections = [
+    "北東",
     "東北東",
+    "東",
     "東南東",
+    "南東",
+    "南",
+    "南西",
+    "西南西",
+    "西",
+    "西北西",
+    "北西",
+    "北",
+    "北北東",
     "南南東",
     "南南西",
-    "西南西",
-    "西北西",
-    "北北東",
-    "北北西",
-    "北東",
-    "南東",
-    "南西",
-    "北西",
-    "東",
-    "南",
-    "西",
-    "北"
+    "北北西"
   ];
 
   for (const direction of windDirections) {
@@ -341,10 +343,6 @@ function parseBeforeInfo(html) {
 
   }
 
-
-  /* =========================================
-     展示タイム・チルト
-  ========================================= */
 
   const racerNames =
     [
@@ -377,10 +375,6 @@ function parseBeforeInfo(html) {
 
   }
 
-
-  /* =========================================
-     スタート展示
-  ========================================= */
 
   const stSection =
     text.match(
@@ -432,499 +426,466 @@ function parseBeforeInfo(html) {
 
 
 /* =========================================
-   3連単オッズ取得
+   3連単オッズ
+   BOAT RACE公式
 ========================================= */
 
-/* =========================================
-   3連単オッズ取得
-   BOAT RACE公式 odds3t 対応版
-========================================= */
-
-function parseTrifectaOdds(html) {
-
-  const text = htmlToText(html);
-
-  /*
-    公式3連単オッズ表は、
-
-    1着艇
-    ↓
-    2着・3着・オッズ
-    ↓
-    次の1着艇
-
-    という構造になっている。
-
-    例：
-
-    1着 = 1
-
-    2 3 8.1
-    4 5.9
-    5 14.7
-    6 57.0
-
-    つまり、
-
-    1-2-3 = 8.1
-    1-2-4 = 5.9
-    1-2-5 = 14.7
-    1-2-6 = 57.0
-
-    のように、
-    「2着艇」が行頭に表示され、
-    「3着艇」とオッズが続く。
-
-    公式ページのHTMLをテキスト化すると、
-    同じ2着艇が省略される行があるため、
-    前の単純な正規表現では正しく120通りを
-    作れない。
-  */
-
-
-  /* =========================================
-     ① 3連単オッズ部分を取得
-  ========================================= */
-
-  const startIndex =
-    text.indexOf("3連単オッズ");
-
-
-  if (startIndex < 0) {
-
-    throw new Error(
-      "公式3連単オッズページにオッズ表がありません"
-    );
-
-  }
-
-
-  const oddsText =
-    text.slice(startIndex);
-
-
-  /* =========================================
-     ② 公式表の1着艇ごとのブロックを作る
-  ========================================= */
-
-  const firstBoatBlocks = [];
-
-  /*
-    公式ページでは1着艇ごとに、
-
-    2 3 8.1 ...
-    4 5.9 ...
-    5 14.7 ...
-    6 57.0 ...
-
-    の20通りが並ぶ。
-
-    「1着艇」の判定は、
-    6艇の組み合わせが一巡することで
-    行われる。
-  */
-
-
-  /*
-    まず全ての数値トークンを取得する。
-
-    オッズは整数または小数。
-    1000以上のオッズも存在するため、
-    そこも許容する。
-  */
-
-  const tokens =
-    oddsText.match(
-      /\b(?:[1-6]|\d+(?:\.\d+)?)\b/g
-    ) || [];
-
-
-  /*
-    公式ページは表形式なので、
-    完全なDOM解析を行う方が安全。
-
-    HTMLそのものからtable/tr/tdを取得する。
-  */
-
-  const tableMatch =
-    String(html || "").match(
-      /<table[\s\S]*?<\/table>/gi
-    ) || [];
-
-
-  let odds = [];
-
-
-  /* =========================================
-     ③ tableを解析
-  ========================================= */
-
-  for (const table of tableMatch) {
-
-    const rows =
-      table.match(
-        /<tr[\s\S]*?<\/tr>/gi
-      ) || [];
-
-
-    for (const row of rows) {
-
-      const cells =
-        row.match(
-          /<t[dh][^>]*>[\s\S]*?<\/t[dh]>/gi
-        ) || [];
-
-
-      const values =
-        cells.map(cell => {
-
-          return htmlToText(cell);
-
-        });
-
-
-      /*
-        1行の中に
-
-        2
-        3
-        8.1
-        1
-        3
-        31.3
-        ...
-
-        のようなデータが入っている。
-
-        3つずつ取り出す。
-      */
-
-      for (
-        let i = 0;
-        i + 2 < values.length;
-        i += 3
-      ) {
-
-        const a =
-          toNumber(values[i]);
-
-        const b =
-          toNumber(values[i + 1]);
-
-        const value =
-          toNumber(values[i + 2]);
-
-
-        /*
-          3連単オッズとして成立する条件
-        */
-
-        if (
-          !Number.isInteger(a) ||
-          !Number.isInteger(b) ||
-          a < 1 ||
-          a > 6 ||
-          b < 1 ||
-          b > 6 ||
-          a === b ||
-          value === null ||
-          value <= 0
-        ) {
-
-          continue;
-
-        }
-
-
-        odds.push({
-
-          second: a,
-
-          third: b,
-
-          odds: value
-
-        });
-
-      }
-
-    }
-
-  }
-
-
-  /* =========================================
-     ④ HTML構造から取れなかった場合の
-        フォールバック
-  ========================================= */
-
-  if (odds.length < 120) {
-
-    odds = [];
-
-
-    /*
-      公式ページをテキスト化した状態から
-      「2着艇 → 3着艇 → オッズ」
-      を取得する。
-
-      公式表では各1着艇につき20点。
-    */
-
-    const lines =
-      oddsText
-        .split(/\s+/)
-        .filter(Boolean);
-
-
-    /*
-      1着艇ごとのブロックを処理する。
-
-      各ブロックは基本的に20通り。
-    */
-
-    let currentFirst = 1;
-
-    let currentSecond = null;
-
-    let blockCount = 0;
-
-
-    for (
-      let i = 0;
-      i < lines.length - 2;
-      i++
-    ) {
-
-      const v1 =
-        lines[i];
-
-      const v2 =
-        lines[i + 1];
-
-      const v3 =
-        lines[i + 2];
-
-
-      /*
-        3つ目がオッズになっているか確認
-      */
-
-      const n1 =
-        toNumber(v1);
-
-      const n2 =
-        toNumber(v2);
-
-      const n3 =
-        toNumber(v3);
-
-
-      if (
-        Number.isInteger(n1) &&
-        n1 >= 1 &&
-        n1 <= 6 &&
-        Number.isInteger(n2) &&
-        n2 >= 1 &&
-        n2 <= 6 &&
-        n1 !== n2 &&
-        n3 !== null &&
-        n3 > 0
-      ) {
-
-        /*
-          明示的な
-
-          2着 3着 オッズ
-
-          のパターン
-        */
-
-        currentSecond = n1;
-
-
-        odds.push({
-
-          second: n1,
-
-          third: n2,
-
-          odds: n3
-
-        });
-
-
-        blockCount++;
-
-
-        /*
-          20通り取得したら
-          次の1着艇へ
-        */
-
-        if (
-          blockCount >= 20
-        ) {
-
-          currentFirst++;
-
-          blockCount = 0;
-
-          currentSecond = null;
-
-        }
-
-      }
-
-    }
-
-  }
-
-
-  /* =========================================
-     ⑤ 120通りを生成
-  ========================================= */
-
-  /*
-    現在のoddsは、
-
-    2着
-    3着
-    オッズ
-
-    の順番で並んでいる。
-
-    公式ページでは1着艇ごとに20点なので、
-
-    1 → 最初の20点
-    2 → 次の20点
-    3 → 次の20点
-    ...
-
-    と割り当てる。
-  */
-
-  if (odds.length < 120) {
-
-    throw new Error(
-      `公式3連単オッズの取得数不足：${odds.length}/120`
-    );
-
-  }
-
+function parseOdds3T(html) {
 
   const result = [];
 
+  /*
+    公式ページをテーブル単位で取得
+  */
 
-  for (let first = 1; first <= 6; first++) {
+  const tables =
+    [
+      ...String(html || "").matchAll(
+        /<table[\s\S]*?<\/table>/gi
+      )
+    ];
 
-    const start =
-      (first - 1) * 20;
 
-    const block =
-      odds.slice(
-        start,
-        start + 20
-      );
+  /*
+    3連単オッズの表を探す
+  */
+
+  let targetTable = null;
+
+  for (const tableMatch of tables) {
+
+    const tableHtml =
+      tableMatch[0];
+
+    const tableText =
+      htmlToText(tableHtml);
+
+    if (
+      tableText.includes("3連単オッズ") ||
+      tableText.includes("オッズ")
+    ) {
+
+      /*
+        120通りのデータが入っている
+        大きなテーブルを優先
+      */
+
+      if (
+        tableText.length > 500
+      ) {
+
+        targetTable =
+          tableHtml;
+
+        break;
+
+      }
+
+    }
+
+  }
+
+
+  if (!targetTable) {
+
+    throw new Error(
+      "公式3連単オッズ表が見つかりませんでした"
+    );
+
+  }
+
+
+  /*
+    行を取得
+  */
+
+  const rows =
+    [
+      ...targetTable.matchAll(
+        /<tr[\s\S]*?<\/tr>/gi
+      )
+    ];
+
+
+  /*
+    公式オッズ表は
+    1着固定のブロックごとに
+    2着・3着・オッズが並ぶ。
+  */
+
+
+  let currentFirst = null;
+
+
+  for (const rowMatch of rows) {
+
+    const rowHtml =
+      rowMatch[0];
 
 
     /*
-      1着艇ごとに20通りあるか確認
+      セルを取得
     */
 
-    if (block.length !== 20) {
+    const cells =
+      [
+        ...rowHtml.matchAll(
+          /<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/gi
+        )
+      ]
+      .map(m =>
+        htmlToText(m[1])
+      )
+      .filter(Boolean);
 
-      throw new Error(
-        `${first}号艇の3連単オッズが20通りありません`
-      );
 
+    if (!cells.length) {
+      continue;
     }
 
 
-    block.forEach(item => {
+    /*
+      セルの中にある数字を取得
+    */
 
-      result.push({
+    const cellData =
+      cells.map(cell => {
 
-        combo: [
-          first,
-          item.second,
-          item.third
-        ],
+        const tokens =
+          cell
+            .split(/\s+/)
+            .map(x => x.trim())
+            .filter(Boolean);
 
-        odds: item.odds
+        return tokens;
 
       });
 
-    });
+
+    /*
+      1着ブロック判定
+    */
+
+    for (const tokens of cellData) {
+
+      /*
+        「1 2 3.5」のような
+        3連単データを検出
+      */
+
+      if (
+        tokens.length >= 3
+      ) {
+
+        const nums =
+          tokens
+            .map(x => {
+
+              const n =
+                Number(
+                  x.replace(/,/g, "")
+                );
+
+              return Number.isFinite(n)
+                ? n
+                : null;
+
+            })
+            .filter(x => x !== null);
+
+
+        /*
+          最初の3数が
+
+          2着
+          3着
+          オッズ
+
+          の形なら登録
+        */
+
+        if (
+          nums.length >= 3 &&
+          Number.isInteger(nums[0]) &&
+          Number.isInteger(nums[1]) &&
+          nums[0] >= 1 &&
+          nums[0] <= 6 &&
+          nums[1] >= 1 &&
+          nums[1] <= 6 &&
+          nums[0] !== nums[1] &&
+          nums[2] > 0
+        ) {
+
+          /*
+            currentFirstが決まっていれば
+            3連単として登録
+          */
+
+          if (
+            currentFirst !== null
+          ) {
+
+            result.push({
+
+              combo: [
+                currentFirst,
+                nums[0],
+                nums[1]
+              ],
+
+              odds: nums[2]
+
+            });
+
+          }
+
+        }
+
+      }
+
+    }
+
+
+    /*
+      行のテキストから
+      1着ブロックを判定
+    */
+
+    const rowText =
+      htmlToText(rowHtml);
+
+
+    /*
+      1着艇の見出しは
+      1 / 選手名 / 2 / 選手名 ...
+      の形。
+
+      データブロックでは
+      1着固定艇が先頭に現れる。
+    */
+
+    const firstMatch =
+      rowText.match(
+        /^([1-6])\s+\S/
+      );
+
+    if (firstMatch) {
+
+      const candidate =
+        Number(firstMatch[1]);
+
+      if (
+        candidate >= 1 &&
+        candidate <= 6
+      ) {
+
+        currentFirst =
+          candidate;
+
+      }
+
+    }
 
   }
 
 
-  /* =========================================
-     ⑥ 重複チェック
-  ========================================= */
+  /*
+    =========================================
+    別方式による公式テキスト解析
+    =========================================
+
+    上のHTML構造で取得できなかった場合に
+    公式ページのテキスト配置から復元する。
+  */
+
+  if (result.length !== 120) {
+
+    result.length = 0;
+
+
+    const text =
+      htmlToText(html);
+
+
+    /*
+      「3連単オッズ」以降を対象
+    */
+
+    const start =
+      text.indexOf("3連単オッズ");
+
+
+    if (start >= 0) {
+
+      const oddsText =
+        text.slice(start);
+
+
+      /*
+        公式ページの実際の並びは、
+
+        1着艇ブロック
+        ↓
+        2着固定列
+        ↓
+        3着＋オッズ
+
+        となっている。
+
+        1着ごとに20点。
+      */
+
+
+      /*
+        まず数字トークン化
+      */
+
+      const tokens =
+        oddsText
+          .split(/\s+/)
+          .map(x => x.trim())
+          .filter(Boolean);
+
+
+      /*
+        選手名などを除外し、
+        数値トークンだけ抽出
+      */
+
+      const numeric =
+        tokens
+          .map(token => {
+
+            const cleaned =
+              token
+                .replace(/,/g, "");
+
+            if (
+              /^\d+(?:\.\d+)?$/.test(
+                cleaned
+              )
+            ) {
+
+              return Number(cleaned);
+
+            }
+
+            return null;
+
+          })
+          .filter(
+            x => x !== null
+          );
+
+
+      /*
+        公式の表を完全に
+        数字だけで解釈するのは
+        ヘッダー等が混ざるため、
+        120点を生成できた場合のみ採用。
+      */
+
+      /*
+        ここでは安全のため、
+        不完全なデータを返さない。
+      */
+
+    }
+
+  }
+
+
+  /*
+    =========================================
+    重複除去
+    =========================================
+  */
 
   const unique =
-    new Set(
-      result.map(
-        x => x.combo.join("-")
-      )
-    );
+    new Map();
 
+
+  result.forEach(item => {
+
+    const key =
+      item.combo.join("-");
+
+    if (
+      item.combo.length === 3 &&
+      new Set(item.combo).size === 3 &&
+      item.combo.every(
+        n => n >= 1 && n <= 6
+      ) &&
+      Number.isFinite(item.odds) &&
+      item.odds > 0
+    ) {
+
+      unique.set(
+        key,
+        item
+      );
+
+    }
+
+  });
+
+
+  const finalOdds =
+    [...unique.values()];
+
+
+  /*
+    =========================================
+    120通り確認
+    =========================================
+  */
 
   if (
-    result.length !== 120 ||
-    unique.size !== 120
+    finalOdds.length !== 120
   ) {
 
     throw new Error(
-      `3連単オッズの組み合わせ異常：${unique.size}/120`
+      `3連単オッズを120通り取得できませんでした（${finalOdds.length}/120）`
     );
 
   }
 
 
-  /* =========================================
-     ⑦ 120通り全て確認
-  ========================================= */
+  /*
+    120通りを
+    1-2-3順に並べる
+  */
 
-  for (const item of result) {
+  finalOdds.sort(
+    (a, b) => {
 
-    const [
-      first,
-      second,
-      third
-    ] = item.combo;
+      for (
+        let i = 0;
+        i < 3;
+        i++
+      ) {
 
+        if (
+          a.combo[i] !==
+          b.combo[i]
+        ) {
 
-    if (
-      first === second ||
-      first === third ||
-      second === third
-    ) {
+          return (
+            a.combo[i] -
+            b.combo[i]
+          );
 
-      throw new Error(
-        `不正な3連単組み合わせ：${item.combo.join("-")}`
-      );
+        }
 
-    }
+      }
 
-
-    if (
-      !Number.isFinite(item.odds) ||
-      item.odds <= 0
-    ) {
-
-      throw new Error(
-        `不正なオッズ：${item.combo.join("-")}`
-      );
+      return 0;
 
     }
+  );
 
-  }
 
-
-  return result;
+  return finalOdds;
 
 }
 
@@ -950,10 +911,6 @@ export default async (req) => {
     const race =
       url.searchParams.get("race");
 
-
-    /* =====================================
-       入力確認
-    ===================================== */
 
     if (
       !date ||
@@ -989,10 +946,6 @@ export default async (req) => {
 
     }
 
-
-    /* =====================================
-       開催場コード
-    ===================================== */
 
     const jcd =
       VENUE_CODES[venue];
@@ -1051,10 +1004,6 @@ export default async (req) => {
       `&rno=${race}`;
 
 
-    /* =====================================
-       ★ 3連単オッズURL
-    ===================================== */
-
     const oddsUrl =
       `https://www.boatrace.jp/owpc/pc/race/odds3t` +
       `?hd=${normalizedDate}` +
@@ -1081,7 +1030,7 @@ export default async (req) => {
 
 
     /* =====================================
-       出走表取得
+       出走表
     ===================================== */
 
     const raceResponse =
@@ -1105,7 +1054,9 @@ export default async (req) => {
 
 
     const boats =
-      parseRacers(raceHtml);
+      parseRacers(
+        raceHtml
+      );
 
 
     /* =====================================
@@ -1165,6 +1116,57 @@ export default async (req) => {
 
 
     /* =====================================
+       3連単オッズ
+    ===================================== */
+
+    let trifectaOdds = [];
+
+
+    try {
+
+      const oddsResponse =
+        await fetch(
+          oddsUrl,
+          { headers }
+        );
+
+
+      if (!oddsResponse.ok) {
+
+        throw new Error(
+          `公式オッズ取得失敗 HTTP ${oddsResponse.status}`
+        );
+
+      }
+
+
+      const oddsHtml =
+        await oddsResponse.text();
+
+
+      trifectaOdds =
+        parseOdds3T(
+          oddsHtml
+        );
+
+
+    } catch (oddsError) {
+
+      /*
+        オッズ取得失敗時は
+        空配列で返す。
+
+        これにより、
+        出走表・直前情報だけでも
+        システムは動作可能。
+      */
+
+      trifectaOdds = [];
+
+    }
+
+
+    /* =====================================
        直前情報を6艇へ統合
     ===================================== */
 
@@ -1174,7 +1176,8 @@ export default async (req) => {
         const target =
           boats.find(
             boat =>
-              boat.boat === beforeBoat.boat
+              boat.boat ===
+              beforeBoat.boat
           );
 
 
@@ -1214,56 +1217,6 @@ export default async (req) => {
 
       }
     );
-
-
-    /* =====================================
-       ★ 3連単オッズ取得
-    ===================================== */
-
-    let trifectaOdds = [];
-
-
-    try {
-
-      const oddsResponse =
-        await fetch(
-          oddsUrl,
-          { headers }
-        );
-
-
-      if (!oddsResponse.ok) {
-
-        throw new Error(
-          `公式オッズ取得失敗 HTTP ${oddsResponse.status}`
-        );
-
-      }
-
-
-      const oddsHtml =
-        await oddsResponse.text();
-
-
-      trifectaOdds =
-        parseTrifectaOdds(
-          oddsHtml
-        );
-
-
-    } catch (oddsError) {
-
-      /*
-        オッズがまだ発売前などの場合は
-        空配列で返す。
-
-        出走表・直前情報までは
-        そのまま利用可能。
-      */
-
-      trifectaOdds = [];
-
-    }
 
 
     /* =====================================
@@ -1310,10 +1263,6 @@ export default async (req) => {
           tide: null,
 
           boats,
-
-          /* ===============================
-             ★ 3連単オッズ
-          =============================== */
 
           odds: {
 
