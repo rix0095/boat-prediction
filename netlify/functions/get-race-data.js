@@ -1,5 +1,6 @@
 // Netlify Function
-// BOAT RACE公式 出走表＋直前情報からデータ取得
+// BOAT RACE公式
+// 出走表＋直前情報＋3連単オッズ取得
 
 const VENUE_CODES = {
   桐生: "01",
@@ -88,7 +89,6 @@ function toNumber(value) {
 
 /* =========================================
    出走表
-   6艇の基本データ
 ========================================= */
 
 function parseRacers(html) {
@@ -243,26 +243,16 @@ function parseBeforeInfo(html) {
   };
 
 
-  /* =========================================
-     気温
-  ========================================= */
-
   const tempMatch =
     text.match(
       /気温\s*([+-]?\d+(?:\.\d+)?)℃/
     );
 
   if (tempMatch) {
-
     result.temperature =
       toNumber(tempMatch[1]);
-
   }
 
-
-  /* =========================================
-     水温
-  ========================================= */
 
   const waterMatch =
     text.match(
@@ -270,16 +260,10 @@ function parseBeforeInfo(html) {
     );
 
   if (waterMatch) {
-
     result.waterTemperature =
       toNumber(waterMatch[1]);
-
   }
 
-
-  /* =========================================
-     風速
-  ========================================= */
 
   const windMatch =
     text.match(
@@ -287,16 +271,10 @@ function parseBeforeInfo(html) {
     );
 
   if (windMatch) {
-
     result.windSpeed =
       toNumber(windMatch[1]);
-
   }
 
-
-  /* =========================================
-     波高
-  ========================================= */
 
   const waveMatch =
     text.match(
@@ -304,16 +282,10 @@ function parseBeforeInfo(html) {
     );
 
   if (waveMatch) {
-
     result.wave =
       toNumber(waveMatch[1]);
-
   }
 
-
-  /* =========================================
-     天候
-  ========================================= */
 
   const weatherWords = [
     "晴れ",
@@ -337,34 +309,28 @@ function parseBeforeInfo(html) {
   }
 
 
-  /* =========================================
-     風向
-  ========================================= */
-
   const windDirections = [
-    "北東",
     "東北東",
-    "東",
     "東南東",
-    "南東",
-    "南",
-    "南西",
-    "西南西",
-    "西",
-    "西北西",
-    "北西",
-    "北",
-    "北北東",
     "南南東",
     "南南西",
-    "北北西"
+    "西南西",
+    "西北西",
+    "北北東",
+    "北北西",
+    "北東",
+    "南東",
+    "南西",
+    "北西",
+    "東",
+    "南",
+    "西",
+    "北"
   ];
 
   for (const direction of windDirections) {
 
-    if (
-      text.includes(direction)
-    ) {
+    if (text.includes(direction)) {
 
       result.windDirection =
         direction;
@@ -456,6 +422,185 @@ function parseBeforeInfo(html) {
       }
 
     });
+
+  }
+
+
+  return result;
+
+}
+
+
+/* =========================================
+   3連単オッズ取得
+========================================= */
+
+function parseTrifectaOdds(html) {
+
+  const text =
+    htmlToText(html);
+
+
+  /*
+    「3連単オッズ」以降を対象にする
+  */
+
+  const startIndex =
+    text.indexOf("3連単オッズ");
+
+
+  if (startIndex < 0) {
+
+    throw new Error(
+      "3連単オッズの項目が公式ページに見つかりません"
+    );
+
+  }
+
+
+  const oddsText =
+    text.slice(startIndex);
+
+
+  /*
+    公式ページでは
+
+    2 3 24.5
+    4 93.4
+    5 25.2
+    6 94.4
+
+    のように3連単の組み合わせと
+    オッズが順番に掲載される。
+
+    HTMLをテキスト化した後、
+    「艇番・艇番・オッズ」
+    の組み合わせを抽出する。
+  */
+
+  const regex =
+    /\b([1-6])\s+([1-6])\s+(\d+(?:\.\d+)?)\b/g;
+
+
+  const matches =
+    [...oddsText.matchAll(regex)];
+
+
+  const odds = [];
+
+
+  for (const match of matches) {
+
+    const second =
+      Number(match[1]);
+
+    const third =
+      Number(match[2]);
+
+    const value =
+      toNumber(match[3]);
+
+
+    if (
+      second < 1 ||
+      second > 6 ||
+      third < 1 ||
+      third > 6
+    ) {
+      continue;
+    }
+
+
+    if (
+      second === third
+    ) {
+      continue;
+    }
+
+
+    if (
+      value === null ||
+      value <= 0
+    ) {
+      continue;
+    }
+
+
+    odds.push({
+
+      second,
+
+      third,
+
+      odds: value
+
+    });
+
+  }
+
+
+  /*
+    公式表では各1着艇ごとに20通り。
+
+    120通り取得できれば正常。
+  */
+
+  if (odds.length < 120) {
+
+    throw new Error(
+      `3連単オッズを120通り取得できませんでした（${odds.length}/120）`
+    );
+
+  }
+
+
+  /*
+    最初の120件だけ採用
+  */
+
+  const result = [];
+
+  for (let i = 0; i < 120; i++) {
+
+    const first =
+      Math.floor(i / 20) + 1;
+
+    const item =
+      odds[i];
+
+
+    result.push({
+
+      combo: [
+        first,
+        item.second,
+        item.third
+      ],
+
+      odds: item.odds
+
+    });
+
+  }
+
+
+  /*
+    念のため重複チェック
+  */
+
+  const unique =
+    new Set(
+      result.map(
+        x => x.combo.join("-")
+      )
+    );
+
+
+  if (unique.size !== 120) {
+
+    throw new Error(
+      `3連単オッズの組み合わせに異常があります（${unique.size}/120）`
+    );
 
   }
 
@@ -570,7 +715,7 @@ export default async (req) => {
 
 
     /* =====================================
-       出走表URL
+       公式URL
     ===================================== */
 
     const racelistUrl =
@@ -580,14 +725,19 @@ export default async (req) => {
       `&rno=${race}`;
 
 
-    /* =====================================
-       直前情報URL
-       
-       BOAT RACE公式
-    ===================================== */
-
     const beforeUrl =
       `https://www.boatrace.jp/owpc/pc/race/beforeinfo` +
+      `?hd=${normalizedDate}` +
+      `&jcd=${jcd}` +
+      `&rno=${race}`;
+
+
+    /* =====================================
+       ★ 3連単オッズURL
+    ===================================== */
+
+    const oddsUrl =
+      `https://www.boatrace.jp/owpc/pc/race/odds3t` +
       `?hd=${normalizedDate}` +
       `&jcd=${jcd}` +
       `&rno=${race}`;
@@ -635,16 +785,12 @@ export default async (req) => {
       await raceResponse.text();
 
 
-    /* =====================================
-       6艇基本データ
-    ===================================== */
-
     const boats =
       parseRacers(raceHtml);
 
 
     /* =====================================
-       直前情報取得
+       直前情報
     ===================================== */
 
     let before = {
@@ -684,11 +830,6 @@ export default async (req) => {
 
     } catch (beforeError) {
 
-      /*
-        直前情報が取れなくても
-        出走表データは返す
-      */
-
       before = {
 
         weather: null,
@@ -705,7 +846,7 @@ export default async (req) => {
 
 
     /* =====================================
-       直前情報を6艇データへ統合
+       直前情報を6艇へ統合
     ===================================== */
 
     before.boats.forEach(
@@ -757,6 +898,56 @@ export default async (req) => {
 
 
     /* =====================================
+       ★ 3連単オッズ取得
+    ===================================== */
+
+    let trifectaOdds = [];
+
+
+    try {
+
+      const oddsResponse =
+        await fetch(
+          oddsUrl,
+          { headers }
+        );
+
+
+      if (!oddsResponse.ok) {
+
+        throw new Error(
+          `公式オッズ取得失敗 HTTP ${oddsResponse.status}`
+        );
+
+      }
+
+
+      const oddsHtml =
+        await oddsResponse.text();
+
+
+      trifectaOdds =
+        parseTrifectaOdds(
+          oddsHtml
+        );
+
+
+    } catch (oddsError) {
+
+      /*
+        オッズがまだ発売前などの場合は
+        空配列で返す。
+
+        出走表・直前情報までは
+        そのまま利用可能。
+      */
+
+      trifectaOdds = [];
+
+    }
+
+
+    /* =====================================
        最終レスポンス
     ===================================== */
 
@@ -801,9 +992,14 @@ export default async (req) => {
 
           boats,
 
+          /* ===============================
+             ★ 3連単オッズ
+          =============================== */
+
           odds: {
 
-            trifecta: []
+            trifecta:
+              trifectaOdds
 
           }
 
@@ -813,7 +1009,9 @@ export default async (req) => {
           racelistUrl,
 
         beforeInfoUrl:
-          beforeUrl
+          beforeUrl,
+
+        oddsUrl
 
       }, null, 2),
 
