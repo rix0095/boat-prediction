@@ -35,7 +35,6 @@ const VENUE_CODES = {
 ========================================= */
 
 function htmlToText(html) {
-
   return String(html || "")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -53,21 +52,17 @@ function htmlToText(html) {
     .replace(/&gt;/gi, ">")
     .replace(/\s+/g, " ")
     .trim();
-
 }
 
 
 function cleanName(value) {
-
   return String(value || "")
     .replace(/\s+/g, " ")
     .trim();
-
 }
 
 
 function toNumber(value) {
-
   if (
     value === undefined ||
     value === null ||
@@ -83,7 +78,6 @@ function toNumber(value) {
   );
 
   return Number.isFinite(n) ? n : null;
-
 }
 
 
@@ -98,8 +92,7 @@ function parseRacers(html) {
   const identityRegex =
     /(\d{4})\s*\/\s*(A1|A2|B1|B2)\s+(.+?)(?=\s+(?:北海道|青森|岩手|宮城|秋田|山形|福島|茨城|栃木|群馬|埼玉|千葉|東京|神奈川|新潟|富山|石川|福井|山梨|長野|岐阜|静岡|愛知|三重|滋賀|京都|大阪|兵庫|奈良|和歌山|鳥取|島根|岡山|広島|山口|徳島|香川|愛媛|高知|福岡|佐賀|長崎|熊本|大分|宮崎|鹿児島|沖縄)\/)/g;
 
-  const matches =
-    [...text.matchAll(identityRegex)];
+  const matches = [...text.matchAll(identityRegex)];
 
   const boats = [];
 
@@ -111,31 +104,23 @@ function parseRacers(html) {
 
     const m = matches[i];
 
-    const registration =
-      Number(m[1]);
+    const registration = Number(m[1]);
+    const className = m[2];
+    const name = cleanName(m[3]);
 
-    const className =
-      m[2];
-
-    const name =
-      cleanName(m[3]);
-
-    const start =
-      m.index + m[0].length;
+    const start = m.index + m[0].length;
 
     const end =
       i + 1 < matches.length
         ? matches[i + 1].index
         : text.length;
 
-    const block =
-      text.slice(start, end);
+    const block = text.slice(start, end);
 
     const statRegex =
       /F\s*(\d+)\s+L\s*(\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+\.\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)/;
 
-    const stats =
-      block.match(statRegex);
+    const stats = block.match(statRegex);
 
     let averageST = null;
     let nationalWinRate = null;
@@ -147,26 +132,13 @@ function parseRacers(html) {
 
     if (stats) {
 
-      averageST =
-        toNumber(stats[3]);
-
-      nationalWinRate =
-        toNumber(stats[4]);
-
-      localWinRate =
-        toNumber(stats[7]);
-
-      motorNo =
-        toNumber(stats[10]);
-
-      motor2Rate =
-        toNumber(stats[11]);
-
-      boatNo =
-        toNumber(stats[13]);
-
-      boat2Rate =
-        toNumber(stats[14]);
+      averageST = toNumber(stats[3]);
+      nationalWinRate = toNumber(stats[4]);
+      localWinRate = toNumber(stats[7]);
+      motorNo = toNumber(stats[10]);
+      motor2Rate = toNumber(stats[11]);
+      boatNo = toNumber(stats[13]);
+      boat2Rate = toNumber(stats[14]);
 
     }
 
@@ -244,10 +216,8 @@ function parseBeforeInfo(html) {
     );
 
   if (tempMatch) {
-
     result.temperature =
       toNumber(tempMatch[1]);
-
   }
 
 
@@ -257,10 +227,8 @@ function parseBeforeInfo(html) {
     );
 
   if (waterMatch) {
-
     result.waterTemperature =
       toNumber(waterMatch[1]);
-
   }
 
 
@@ -270,10 +238,8 @@ function parseBeforeInfo(html) {
     );
 
   if (windMatch) {
-
     result.windSpeed =
       toNumber(windMatch[1]);
-
   }
 
 
@@ -283,10 +249,8 @@ function parseBeforeInfo(html) {
     );
 
   if (waveMatch) {
-
     result.wave =
       toNumber(waveMatch[1]);
-
   }
 
 
@@ -313,30 +277,29 @@ function parseBeforeInfo(html) {
 
 
   const windDirections = [
-    "北東",
     "東北東",
-    "東",
+    "北東",
     "東南東",
     "南東",
+    "南南東",
     "南",
+    "南南西",
     "南西",
     "西南西",
     "西",
     "西北西",
     "北西",
+    "北北西",
     "北",
     "北北東",
-    "南南東",
-    "南南西",
-    "北北西"
+    "東"
   ];
 
   for (const direction of windDirections) {
 
     if (text.includes(direction)) {
 
-      result.windDirection =
-        direction;
+      result.windDirection = direction;
 
       break;
 
@@ -345,12 +308,11 @@ function parseBeforeInfo(html) {
   }
 
 
-  const racerNames =
-    [
-      ...text.matchAll(
-        /\b(\d)\s+([^\d]+?)\s+\d{1,2}\.\dkg\s+(\d\.\d{2})\s+([+-]?\d+(?:\.\d+)?)/g
-      )
-    ];
+  const racerNames = [
+    ...text.matchAll(
+      /\b(\d)\s+([^\d]+?)\s+\d{1,2}\.\dkg\s+(\d\.\d{2})\s+([+-]?\d+(?:\.\d+)?)/g
+    )
+  ];
 
 
   for (
@@ -388,12 +350,11 @@ function parseBeforeInfo(html) {
     const stText =
       stSection[1];
 
-    const stMatches =
-      [
-        ...stText.matchAll(
-          /(\d)\s+(F?\.\d{2})/g
-        )
-      ];
+    const stMatches = [
+      ...stText.matchAll(
+        /(\d)\s+(F?\.\d{2})/g
+      )
+    ];
 
 
     stMatches.forEach(m => {
@@ -434,152 +395,9 @@ function parseTrifectaOdds(html) {
 
   const odds = {};
 
-  /*
-   * 公式ページのHTMLから
-   * 3連単のテーブルを取得する。
-   */
-
-  const text =
-    htmlToText(html);
 
   /*
-   * まず「3連単オッズ」以降だけを対象にする
-   */
-
-  const sectionMatch =
-    text.match(
-      /3連単オッズ([\s\S]*?)(?:締切時オッズ|ボートレースガイド|$)/
-    );
-
-  const targetText =
-    sectionMatch
-      ? sectionMatch[1]
-      : text;
-
-
-  /*
-   * 公式ページは
-   *
-   * 1着
-   * 2着
-   * オッズ
-   *
-   * が表形式で並ぶ。
-   *
-   * HTMLを直接解析して
-   * 数字の組み合わせを取得する。
-   */
-
-  const combinationRegex =
-    /([1-6])\s*\|\s*([1-6])\s*\|\s*([0-9]+(?:\.[0-9]+)?)/g;
-
-  const matches =
-    [...targetText.matchAll(combinationRegex)];
-
-
-  for (const match of matches) {
-
-    const first =
-      Number(match[1]);
-
-    const second =
-      Number(match[2]);
-
-    const odd =
-      Number(match[3]);
-
-
-    if (
-      first >= 1 &&
-      first <= 6 &&
-      second >= 1 &&
-      second <= 6 &&
-      first !== second &&
-      Number.isFinite(odd)
-    ) {
-
-      /*
-       * 3着は公式表の行構造から
-       * 後述のHTML解析で補完する。
-       */
-
-    }
-
-  }
-
-
-  /*
-   * HTMLのtable構造を直接解析
-   */
-
-  const rowRegex =
-    /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-
-  const rows =
-    [...String(html || "").matchAll(rowRegex)];
-
-
-  for (const row of rows) {
-
-    const cells =
-      [
-        ...row[1].matchAll(
-          /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi
-        )
-      ]
-      .map(m =>
-        htmlToText(m[1])
-      )
-      .filter(Boolean);
-
-
-    /*
-     * 公式3連単表では
-     * 各列が
-     *
-     * 2着 / 3着 / オッズ
-     *
-     * という構造。
-     *
-     * 1着は行グループから取得する。
-     */
-
-    if (cells.length < 3) {
-      continue;
-    }
-
-  }
-
-
-  /*
-   * BOAT RACE公式ページの
-   * テキスト構造を利用した解析。
-   *
-   * 1着ごとにブロックを分離。
-   */
-
-  const firstBlocks =
-    targetText.split(
-      /\s+(?=[1-6]\s+\d+\s+\d+(?:\.\d+)?)/
-    );
-
-
-  /*
-   * 最後の保険として
-   * 公式HTML内の
-   * data属性・class属性に含まれる
-   * オッズ情報も確認する。
-   */
-
-  const oddsNumbers =
-    targetText.match(
-      /\b\d+(?:\.\d+)?\b/g
-    ) || [];
-
-
-  /*
-   * 3連単120通りを必ず返す。
-   * 取得できないものは null。
+   * 最初に120通りを全部nullで作る
    */
 
   for (let a = 1; a <= 6; a++) {
@@ -596,14 +414,345 @@ function parseTrifectaOdds(html) {
           continue;
         }
 
-        const key =
-          `${a}-${b}-${c}`;
+        odds[`${a}-${b}-${c}`] = null;
+
+      }
+
+    }
+
+  }
+
+
+  const sourceHtml =
+    String(html || "");
+
+
+  /*
+   * 3連単オッズのtableだけ探す
+   */
+
+  const tables = [
+    ...sourceHtml.matchAll(
+      /<table[^>]*>([\s\S]*?)<\/table>/gi
+    )
+  ];
+
+
+  let foundRows = 0;
+  let foundOdds = 0;
+
+
+  for (const tableMatch of tables) {
+
+    const tableHtml =
+      tableMatch[1];
+
+    const tableText =
+      htmlToText(tableHtml);
+
+
+    /*
+     * 3連単オッズの表以外は無視
+     */
+
+    if (
+      !tableText.includes("3連単") &&
+      !tableText.includes("オッズ") &&
+      !tableText.match(/\b[1-6]\b/)
+    ) {
+      continue;
+    }
+
+
+    const rows = [
+      ...tableHtml.matchAll(
+        /<tr[^>]*>([\s\S]*?)<\/tr>/gi
+      )
+    ];
+
+
+    for (const rowMatch of rows) {
+
+      const rowHtml =
+        rowMatch[1];
+
+
+      const cells = [
+        ...rowHtml.matchAll(
+          /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi
+        )
+      ]
+      .map(m => htmlToText(m[1]))
+      .filter(Boolean);
+
+
+      /*
+       * 3連単の実データ行は
+       *
+       * 2着 3着 オッズ
+       * 2着 3着 オッズ
+       * ...
+       *
+       * が6ブロック並ぶため、
+       * 基本的に18セルになる。
+       */
+
+      if (cells.length < 18) {
+        continue;
+      }
+
+
+      /*
+       * 6ブロックを処理
+       */
+
+      for (let block = 0; block < 6; block++) {
+
+        const base =
+          block * 3;
+
+
+        const secondText =
+          cells[base];
+
+
+        const thirdText =
+          cells[base + 1];
+
+
+        const oddsText =
+          cells[base + 2];
+
+
+        /*
+         * 数字以外を除去
+         */
+
+        const second =
+          Number(
+            String(secondText)
+              .replace(/[^\d]/g, "")
+          );
+
+
+        const third =
+          Number(
+            String(thirdText)
+              .replace(/[^\d]/g, "")
+          );
+
+
+        /*
+         * オッズ
+         *
+         * 4.4
+         * 15.9
+         * 1030
+         * 5003
+         * 1000
+         *
+         * などを許可
+         */
+
+        const oddMatch =
+          String(oddsText)
+            .replace(/,/g, "")
+            .match(
+              /^\s*(\d+(?:\.\d+)?)\s*$/
+            );
+
+
+        if (!oddMatch) {
+          continue;
+        }
+
+
+        const odd =
+          Number(oddMatch[1]);
+
+
+        /*
+         * この列の1着は
+         *
+         * block 0 → 1
+         * block 1 → 2
+         * ...
+         * block 5 → 6
+         */
+
+        const first =
+          block + 1;
+
 
         if (
-          odds[key] === undefined
+          first < 1 ||
+          first > 6 ||
+          second < 1 ||
+          second > 6 ||
+          third < 1 ||
+          third > 6
+        ) {
+          continue;
+        }
+
+
+        if (
+          first === second ||
+          first === third ||
+          second === third
+        ) {
+          continue;
+        }
+
+
+        if (!Number.isFinite(odd)) {
+          continue;
+        }
+
+
+        const key =
+          `${first}-${second}-${third}`;
+
+
+        odds[key] =
+          odd;
+
+
+        foundOdds++;
+
+      }
+
+
+      foundRows++;
+
+    }
+
+  }
+
+
+  /*
+   * 公式HTMLの構造によっては
+   * table解析で取れない場合があるため、
+   * テキスト全体からのフォールバックも行う。
+   */
+
+  if (foundOdds === 0) {
+
+    const text =
+      htmlToText(sourceHtml);
+
+
+    /*
+     * 公式ページの表は、
+     *
+     * 1着ごとに6列
+     *
+     * の構造になっている。
+     *
+     * 「3連単オッズ」以降のテキストを取得。
+     */
+
+    const sectionMatch =
+      text.match(
+        /3連単オッズ([\s\S]*?)(?:締切時オッズ|ボートレースガイド|$)/
+      );
+
+
+    const target =
+      sectionMatch
+        ? sectionMatch[1]
+        : text;
+
+
+    /*
+     * テキストを数字単位に分解
+     */
+
+    const tokens =
+      target.match(
+        /\d+(?:\.\d+)?/g
+      ) || [];
+
+
+    /*
+     * フォールバックは誤認識を防ぐため
+     * 実際のtable解析がない場合だけ使用。
+     */
+
+    let position = 0;
+
+
+    for (let first = 1; first <= 6; first++) {
+
+      const usedSecond = new Set();
+
+
+      for (let count = 0; count < 20 && position < tokens.length; count++) {
+
+        const second =
+          Number(tokens[position++]);
+
+        if (
+          second < 1 ||
+          second > 6 ||
+          second === first ||
+          usedSecond.has(second)
+        ) {
+          continue;
+        }
+
+
+        usedSecond.add(second);
+
+
+        if (position >= tokens.length) {
+          break;
+        }
+
+
+        const third =
+          Number(tokens[position++]);
+
+
+        if (
+          third < 1 ||
+          third > 6 ||
+          third === first ||
+          third === second
+        ) {
+          continue;
+        }
+
+
+        if (position >= tokens.length) {
+          break;
+        }
+
+
+        const odd =
+          Number(tokens[position++]);
+
+
+        if (
+          !Number.isFinite(odd) ||
+          odd <= 0
+        ) {
+          continue;
+        }
+
+
+        const key =
+          `${first}-${second}-${third}`;
+
+
+        if (
+          odds[key] === null
         ) {
 
-          odds[key] = null;
+          odds[key] =
+            odd;
+
+          foundOdds++;
 
         }
 
@@ -615,135 +764,18 @@ function parseTrifectaOdds(html) {
 
 
   /*
-   * 公式ページの表をより確実に
-   * 取得するためのHTML解析
+   * デバッグ用情報を付加
    */
 
-  const tables =
-    [
-      ...String(html || "").matchAll(
-        /<table[^>]*>([\s\S]*?)<\/table>/gi
-      )
-    ];
+  odds._meta = {
 
+    foundRows,
 
-  for (const table of tables) {
+    foundOdds,
 
-    const tableText =
-      htmlToText(table[1]);
+    totalCombinations: 120
 
-    if (
-      !tableText.includes("3連単") &&
-      !tableText.includes("オッズ")
-    ) {
-      continue;
-    }
-
-    /*
-     * この段階では表全体を取得できている。
-     * 公式HTMLの各tdを走査する。
-     */
-
-    const tableRows =
-      [
-        ...table[1].matchAll(
-          /<tr[^>]*>([\s\S]*?)<\/tr>/gi
-        )
-      ];
-
-    let currentFirst =
-      null;
-
-    for (const tr of tableRows) {
-
-      const cells =
-        [
-          ...tr[1].matchAll(
-            /<td[^>]*>([\s\S]*?)<\/td>/gi
-          )
-        ]
-        .map(m =>
-          htmlToText(m[1])
-        )
-        .filter(Boolean);
-
-      if (!cells.length) {
-        continue;
-      }
-
-      /*
-       * 1着の情報を判定
-       */
-
-      const firstMatch =
-        cells.find(
-          x =>
-            /^[1-6]$/.test(x)
-        );
-
-      if (
-        firstMatch &&
-        cells.length >= 3
-      ) {
-
-        currentFirst =
-          Number(firstMatch);
-
-      }
-
-      if (
-        currentFirst === null
-      ) {
-        continue;
-      }
-
-      /*
-       * 数字3つの組み合わせを
-       * 行から抽出
-       */
-
-      for (
-        let i = 0;
-        i < cells.length - 2;
-        i++
-      ) {
-
-        const second =
-          Number(cells[i]);
-
-        const third =
-          Number(cells[i + 1]);
-
-        const odd =
-          Number(
-            String(cells[i + 2])
-              .replace(/,/g, "")
-          );
-
-        if (
-          second >= 1 &&
-          second <= 6 &&
-          third >= 1 &&
-          third <= 6 &&
-          Number.isFinite(odd) &&
-          currentFirst !== second &&
-          currentFirst !== third &&
-          second !== third
-        ) {
-
-          const key =
-            `${currentFirst}-${second}-${third}`;
-
-          odds[key] =
-            odd;
-
-        }
-
-      }
-
-    }
-
-  }
+  };
 
 
   return odds;
@@ -1068,6 +1100,7 @@ export default async (req) => {
           oddsHtml
         );
 
+
     } catch (oddsError) {
 
       /*
@@ -1075,7 +1108,23 @@ export default async (req) => {
        * 出走表・直前情報は返す
        */
 
-      trifectaOdds = {};
+      trifectaOdds = {
+
+        _meta: {
+
+          error:
+            oddsError.message ||
+            "オッズ解析エラー",
+
+          foundRows: 0,
+
+          foundOdds: 0,
+
+          totalCombinations: 120
+
+        }
+
+      };
 
     }
 
