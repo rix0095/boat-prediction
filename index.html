@@ -2327,7 +2327,7 @@ async function fetchRaceData(){
       throw new Error(data.error || "データ取得に失敗しました");
     }
 
-    data.boats.forEach(boat => {
+    data.race.boats.forEach(boat => {
 
       const i = boat.boat;
 
