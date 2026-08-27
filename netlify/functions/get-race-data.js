@@ -976,15 +976,31 @@ export default async (req) => {
       }
 
 
-      const oddsHtml =
-        await oddsResponse.text();
+   const oddsHtml =
+  await oddsResponse.text();
 
+trifectaOdds =
+  parseTrifectaOdds(
+    oddsHtml
+  );
 
-      trifectaOdds =
-        parseTrifectaOdds(
-          oddsHtml
-        );
-
+// オッズ取得状況を確認
+console.log("===== ODDS DEBUG =====");
+console.log("odds status:", oddsResponse.status);
+console.log("odds html length:", oddsHtml.length);
+console.log(
+  "contains 3連単:",
+  oddsHtml.includes("3連単")
+);
+console.log(
+  "contains オッズ:",
+  oddsHtml.includes("オッズ")
+);
+console.log(
+  "first 500 chars:",
+  oddsHtml.substring(0, 500)
+);
+console.log("======================");
 
     } catch (oddsError) {
 
