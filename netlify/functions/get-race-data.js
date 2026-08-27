@@ -2,48 +2,87 @@
 // BOAT RACE公式 出走表＋直前情報＋3連単オッズ取得
 
 const VENUE_CODES = {
-  桐生:"01", 戸田:"02", 江戸川:"03", 平和島:"04",
-  多摩川:"05", 浜名湖:"06", 蒲郡:"07", 常滑:"08",
-  津:"09", 三国:"10", びわこ:"11", 住之江:"12",
-  尼崎:"13", 鳴門:"14", 丸亀:"15", 児島:"16",
-  宮島:"17", 徳山:"18", 下関:"19", 若松:"20",
-  芦屋:"21", 福岡:"22", 唐津:"23", 大村:"24"
+  桐生: "01",
+  戸田: "02",
+  江戸川: "03",
+  平和島: "04",
+  多摩川: "05",
+  浜名湖: "06",
+  蒲郡: "07",
+  常滑: "08",
+  津: "09",
+  三国: "10",
+  びわこ: "11",
+  住之江: "12",
+  尼崎: "13",
+  鳴門: "14",
+  丸亀: "15",
+  児島: "16",
+  宮島: "17",
+  徳山: "18",
+  下関: "19",
+  若松: "20",
+  芦屋: "21",
+  福岡: "22",
+  唐津: "23",
+  大村: "24"
 };
 
+
+/* =========================================
+   HTML → テキスト
+========================================= */
+
 function htmlToText(html) {
+
   return String(html || "")
-    .replace(/<script[\s\S]*?<\/script>/gi," ")
-    .replace(/<style[\s\S]*?<\/style>/gi," ")
-    .replace(/<br\s*\/?>/gi," ")
-    .replace(/<\/td>/gi," ")
-    .replace(/<\/th>/gi," ")
-    .replace(/<\/tr>/gi," ")
-    .replace(/<[^>]+>/g," ")
-    .replace(/&nbsp;/gi," ")
-    .replace(/&amp;/gi,"&")
-    .replace(/&quot;/gi,'"')
-    .replace(/&#39;/gi,"'")
-    .replace(/&#x27;/gi,"'")
-    .replace(/&lt;/gi,"<")
-    .replace(/&gt;/gi,">")
-    .replace(/\s+/g," ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/td>/gi, " ")
+    .replace(/<\/th>/gi, " ")
+    .replace(/<\/tr>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#x27;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
     .trim();
+
 }
+
 
 function cleanName(value) {
-  return String(value || "").replace(/\s+/g," ").trim();
+
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
 }
 
+
 function toNumber(value) {
-  if(value === undefined || value === null || value === "") {
+
+  if (
+    value === undefined ||
+    value === null ||
+    value === ""
+  ) {
     return null;
   }
 
   const n = Number(
-    String(value).replace(/,/g,"").trim()
+    String(value)
+      .replace(/,/g, "")
+      .trim()
   );
 
   return Number.isFinite(n) ? n : null;
+
 }
 
 
@@ -58,31 +97,45 @@ function parseRacers(html) {
   const identityRegex =
     /(\d{4})\s*\/\s*(A1|A2|B1|B2)\s+(.+?)(?=\s+(?:北海道|青森|岩手|宮城|秋田|山形|福島|茨城|栃木|群馬|埼玉|千葉|東京|神奈川|新潟|富山|石川|福井|山梨|長野|岐阜|静岡|愛知|三重|滋賀|京都|大阪|兵庫|奈良|和歌山|鳥取|島根|岡山|広島|山口|徳島|香川|愛媛|高知|福岡|佐賀|長崎|熊本|大分|宮崎|鹿児島|沖縄)\/)/g;
 
-  const matches = [...text.matchAll(identityRegex)];
+  const matches = [
+    ...text.matchAll(identityRegex)
+  ];
 
   const boats = [];
 
-  for(let i=0;i<Math.min(6,matches.length);i++){
+  for (
+    let i = 0;
+    i < Math.min(6, matches.length);
+    i++
+  ) {
 
     const m = matches[i];
 
-    const registration = Number(m[1]);
-    const className = m[2];
-    const name = cleanName(m[3]);
+    const registration =
+      Number(m[1]);
 
-    const start = m.index + m[0].length;
+    const className =
+      m[2];
+
+    const name =
+      cleanName(m[3]);
+
+    const start =
+      m.index + m[0].length;
 
     const end =
       i + 1 < matches.length
         ? matches[i + 1].index
         : text.length;
 
-    const block = text.slice(start,end);
+    const block =
+      text.slice(start, end);
 
     const statRegex =
       /F\s*(\d+)\s+L\s*(\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+\.\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)/;
 
-    const stats = block.match(statRegex);
+    const stats =
+      block.match(statRegex);
 
     let averageST = null;
     let nationalWinRate = null;
@@ -92,44 +145,75 @@ function parseRacers(html) {
     let boatNo = null;
     let boat2Rate = null;
 
-    if(stats){
+    if (stats) {
 
-      averageST = toNumber(stats[3]);
-      nationalWinRate = toNumber(stats[4]);
-      localWinRate = toNumber(stats[7]);
-      motorNo = toNumber(stats[10]);
-      motor2Rate = toNumber(stats[11]);
-      boatNo = toNumber(stats[13]);
-      boat2Rate = toNumber(stats[14]);
+      averageST =
+        toNumber(stats[3]);
+
+      nationalWinRate =
+        toNumber(stats[4]);
+
+      localWinRate =
+        toNumber(stats[7]);
+
+      motorNo =
+        toNumber(stats[10]);
+
+      motor2Rate =
+        toNumber(stats[11]);
+
+      boatNo =
+        toNumber(stats[13]);
+
+      boat2Rate =
+        toNumber(stats[14]);
 
     }
 
     boats.push({
-      boat:i+1,
+
+      boat: i + 1,
+
       registration,
+
       name,
-      class:className,
+
+      class: className,
+
       averageST,
+
       nationalWinRate,
+
       localWinRate,
+
       motorNo,
+
       motor2Rate,
+
       boatNo,
+
       boat2Rate,
-      exhibitionTime:null,
-      tilt:null,
-      startExhibition:null
+
+      exhibitionTime: null,
+
+      tilt: null,
+
+      startExhibition: null
+
     });
 
   }
 
-  if(boats.length !== 6){
+  if (boats.length !== 6) {
+
     throw new Error(
       `選手データを6艇取得できませんでした（${boats.length}/6）`
     );
+
   }
 
   return boats;
+
 }
 
 
@@ -137,79 +221,153 @@ function parseRacers(html) {
    直前情報
 ========================================= */
 
-function parseBeforeInfo(html){
+function parseBeforeInfo(html) {
 
-  const text = htmlToText(html);
+  const text =
+    htmlToText(html);
 
   const result = {
-    weather:null,
-    temperature:null,
-    waterTemperature:null,
-    windDirection:null,
-    windSpeed:null,
-    wave:null,
-    boats:[]
+
+    weather: null,
+
+    temperature: null,
+
+    waterTemperature: null,
+
+    windDirection: null,
+
+    windSpeed: null,
+
+    wave: null,
+
+    boats: []
+
   };
 
-  const tempMatch =
-    text.match(/気温\s*([+-]?\d+(?:\.\d+)?)℃/);
 
-  if(tempMatch){
-    result.temperature = toNumber(tempMatch[1]);
+  /* 気温 */
+
+  const tempMatch =
+    text.match(
+      /気温\s*([+-]?\d+(?:\.\d+)?)℃/
+    );
+
+  if (tempMatch) {
+
+    result.temperature =
+      toNumber(tempMatch[1]);
+
   }
+
+
+  /* 水温 */
 
   const waterMatch =
-    text.match(/水温\s*([+-]?\d+(?:\.\d+)?)℃/);
+    text.match(
+      /水温\s*([+-]?\d+(?:\.\d+)?)℃/
+    );
 
-  if(waterMatch){
+  if (waterMatch) {
+
     result.waterTemperature =
       toNumber(waterMatch[1]);
+
   }
+
+
+  /* 風速 */
 
   const windMatch =
-    text.match(/風速\s*(\d+(?:\.\d+)?)m/);
+    text.match(
+      /風速\s*(\d+(?:\.\d+)?)m/
+    );
 
-  if(windMatch){
+  if (windMatch) {
+
     result.windSpeed =
       toNumber(windMatch[1]);
+
   }
+
+
+  /* 波高 */
 
   const waveMatch =
-    text.match(/波高\s*(\d+(?:\.\d+)?)cm/);
+    text.match(
+      /波高\s*(\d+(?:\.\d+)?)cm/
+    );
 
-  if(waveMatch){
+  if (waveMatch) {
+
     result.wave =
       toNumber(waveMatch[1]);
+
   }
+
+
+  /* 天候 */
 
   const weatherWords = [
-    "晴れ","晴","曇り","曇","雨","雪"
+    "晴れ",
+    "晴",
+    "曇り",
+    "曇",
+    "雨",
+    "雪"
   ];
 
-  for(const word of weatherWords){
+  for (const word of weatherWords) {
 
-    if(text.includes(word)){
-      result.weather = word;
+    if (text.includes(word)) {
+
+      result.weather =
+        word;
+
       break;
+
     }
 
   }
+
+
+  /* 風向 */
 
   const windDirections = [
-    "北東","東北東","東","東南東","南東",
-    "南","南西","西南西","西","西北西",
-    "北西","北","北北東","南南東",
-    "南南西","北北西"
+    "北北東",
+    "東北東",
+    "東南東",
+    "南南東",
+    "南南西",
+    "西南西",
+    "西北西",
+    "北北西",
+    "北東",
+    "南東",
+    "南西",
+    "北西",
+    "東",
+    "南",
+    "西",
+    "北"
   ];
 
-  for(const direction of windDirections){
+  for (const direction of windDirections) {
 
-    if(text.includes(direction)){
-      result.windDirection = direction;
+    if (text.includes(direction)) {
+
+      result.windDirection =
+        direction;
+
       break;
+
     }
 
   }
+
+
+  /* =========================================
+     展示タイム・チルト
+  ========================================= */
 
   const racerNames = [
     ...text.matchAll(
@@ -217,15 +375,17 @@ function parseBeforeInfo(html){
     )
   ];
 
-  for(
-    let i=0;
-    i<Math.min(6,racerNames.length);
+
+  for (
+    let i = 0;
+    i < Math.min(6, racerNames.length);
     i++
-  ){
+  ) {
 
     result.boats.push({
 
-      boat:Number(racerNames[i][1]),
+      boat:
+        Number(racerNames[i][1]),
 
       exhibitionTime:
         toNumber(racerNames[i][3]),
@@ -233,18 +393,24 @@ function parseBeforeInfo(html){
       tilt:
         toNumber(racerNames[i][4]),
 
-      startExhibition:null
+      startExhibition: null
 
     });
 
   }
+
+
+  /* =========================================
+     スタート展示
+  ========================================= */
 
   const stSection =
     text.match(
       /コース並びST\s+([\s\S]+?)(?=水面気象情報|投票|レーススケジュール)/
     );
 
-  if(stSection){
+
+  if (stSection) {
 
     const stMatches = [
       ...stSection[1].matchAll(
@@ -252,25 +418,35 @@ function parseBeforeInfo(html){
       )
     ];
 
-    stMatches.forEach(m=>{
 
-      const boat = Number(m[1]);
-      const value = m[2];
+    stMatches.forEach(m => {
+
+      const boat =
+        Number(m[1]);
+
+      const value =
+        m[2];
 
       const target =
         result.boats.find(
-          x=>x.boat===boat
+          x => x.boat === boat
         );
 
-      if(target){
-        target.startExhibition=value;
+
+      if (target) {
+
+        target.startExhibition =
+          value;
+
       }
 
     });
 
   }
 
+
   return result;
+
 }
 
 
@@ -278,128 +454,209 @@ function parseBeforeInfo(html){
    3連単オッズ解析
 ========================================= */
 
-function parseTrifectaOdds(html){
+function parseTrifectaOdds(html) {
 
-  const text = htmlToText(html);
+  const text =
+    htmlToText(html);
 
   const odds = [];
 
-  /*
-    公式3連単オッズページから
-    1-2-3
-    1-2-4
-    のような組み合わせと
-    その直後の数値を取得
-  */
+  const seen =
+    new Set();
+
+
+  /* =========================================
+     パターン①
+     
+     1-2-3 12.3
+  ========================================= */
 
   const regex =
     /([1-6])\s*[-－]\s*([1-6])\s*[-－]\s*([1-6])\s+(\d+(?:\.\d+)?)/g;
 
-  const seen = new Set();
-
   let match;
 
-  while((match = regex.exec(text)) !== null){
 
-    const a = Number(match[1]);
-    const b = Number(match[2]);
-    const c = Number(match[3]);
+  while (
+    (match = regex.exec(text)) !== null
+  ) {
 
-    if(
-      a===b ||
-      a===c ||
-      b===c
-    ){
+    const a =
+      Number(match[1]);
+
+    const b =
+      Number(match[2]);
+
+    const c =
+      Number(match[3]);
+
+    if (
+      a === b ||
+      a === c ||
+      b === c
+    ) {
       continue;
     }
 
-    const value = toNumber(match[4]);
 
-    if(value === null){
+    const value =
+      toNumber(match[4]);
+
+
+    if (value === null) {
       continue;
     }
 
-    const combo = `${a}-${b}-${c}`;
 
-    if(seen.has(combo)){
+    const combo =
+      `${a}-${b}-${c}`;
+
+
+    if (seen.has(combo)) {
       continue;
     }
+
 
     seen.add(combo);
 
+
     odds.push({
+
       combo,
-      odds:value
+
+      odds: value
+
     });
 
   }
 
-  /*
-    公式HTMLの表構造によって
-    上記正規表現で取れない場合の予備処理
-  */
 
-  if(odds.length < 120){
+  /* =========================================
+     パターン②
+     
+     公式HTMLによって
+     1-2-3の文字列が分割される場合
+  ========================================= */
 
-    const lines =
-      text.split(/(?=\d-\d-\d)/);
+  if (odds.length < 120) {
 
-    for(const line of lines){
+    const comboRegex =
+      /([1-6])\s*[-－]\s*([1-6])\s*[-－]\s*([1-6])/g;
 
-      const m =
-        line.match(
-          /^(\d)-(\d)-(\d)\s+(\d+(?:\.\d+)?)/
+    const combos = [];
+
+    let comboMatch;
+
+
+    while (
+      (comboMatch =
+        comboRegex.exec(text)) !== null
+    ) {
+
+      const a =
+        Number(comboMatch[1]);
+
+      const b =
+        Number(comboMatch[2]);
+
+      const c =
+        Number(comboMatch[3]);
+
+
+      if (
+        a === b ||
+        a === c ||
+        b === c
+      ) {
+        continue;
+      }
+
+
+      combos.push({
+
+        combo:
+          `${a}-${b}-${c}`,
+
+        index:
+          comboMatch.index +
+          comboMatch[0].length
+
+      });
+
+    }
+
+
+    for (const item of combos) {
+
+      if (seen.has(item.combo)) {
+        continue;
+      }
+
+
+      const after =
+        text.slice(
+          item.index,
+          item.index + 100
         );
 
-      if(!m){
+
+      const oddsMatch =
+        after.match(
+          /^\s*(\d+(?:\.\d+)?)/ 
+        );
+
+
+      if (!oddsMatch) {
         continue;
       }
 
-      const a=Number(m[1]);
-      const b=Number(m[2]);
-      const c=Number(m[3]);
 
-      if(a===b || a===c || b===c){
+      const value =
+        toNumber(
+          oddsMatch[1]
+        );
+
+
+      if (value === null) {
         continue;
       }
 
-      const value=toNumber(m[4]);
 
-      if(value===null){
-        continue;
-      }
+      seen.add(item.combo);
 
-      const combo=`${a}-${b}-${c}`;
-
-      if(seen.has(combo)){
-        continue;
-      }
-
-      seen.add(combo);
 
       odds.push({
-        combo,
-        odds:value
+
+        combo: item.combo,
+
+        odds: value
+
       });
 
     }
 
   }
 
-  /*
-    販売前・発売前などで
-    オッズがまだ存在しない場合
-  */
 
-  odds.sort((a,b)=>{
+  /* =========================================
+     並び替え
+  ========================================= */
 
-    const pa=a.combo.split("-").map(Number);
-    const pb=b.combo.split("-").map(Number);
+  odds.sort((a, b) => {
 
-    for(let i=0;i<3;i++){
+    const pa =
+      a.combo.split("-").map(Number);
 
-      if(pa[i]!==pb[i]){
-        return pa[i]-pb[i];
+    const pb =
+      b.combo.split("-").map(Number);
+
+
+    for (let i = 0; i < 3; i++) {
+
+      if (pa[i] !== pb[i]) {
+
+        return pa[i] - pb[i];
+
       }
 
     }
@@ -408,7 +665,50 @@ function parseTrifectaOdds(html){
 
   });
 
+
   return odds;
+
+}
+
+
+/* =========================================
+   JSONレスポンス
+========================================= */
+
+function jsonResponse(
+  data,
+  status = 200
+) {
+
+  return new Response(
+
+    JSON.stringify(
+      data,
+      null,
+      2
+    ),
+
+    {
+
+      status,
+
+      headers: {
+
+        "Content-Type":
+          "application/json; charset=utf-8",
+
+        "Cache-Control":
+          "no-store",
+
+        "Access-Control-Allow-Origin":
+          "*"
+
+      }
+
+    }
+
+  );
+
 }
 
 
@@ -416,11 +716,47 @@ function parseTrifectaOdds(html){
    メイン
 ========================================= */
 
-export default async(req)=>{
+export default async (req) => {
 
-  try{
+  try {
 
-    const url = new URL(req.url);
+    /* =====================================
+       URL処理
+       
+       今回のエラー対策
+       The string did not match
+       the expected pattern.
+    ===================================== */
+
+    const requestUrl =
+      String(req?.url || "/");
+
+
+    let url;
+
+
+    if (
+      requestUrl.startsWith("http://") ||
+      requestUrl.startsWith("https://")
+    ) {
+
+      url =
+        new URL(requestUrl);
+
+    } else {
+
+      url =
+        new URL(
+          requestUrl,
+          "https://boat-prediction.netlify.app"
+        );
+
+    }
+
+
+    /* =====================================
+       パラメータ
+    ===================================== */
 
     const date =
       url.searchParams.get("date");
@@ -431,81 +767,141 @@ export default async(req)=>{
     const race =
       url.searchParams.get("race");
 
-    if(!date || !venue || !race){
 
-      return new Response(
+    /* =====================================
+       入力確認
+    ===================================== */
 
-        JSON.stringify({
-          success:false,
-          error:"開催日・開催場・Rが必要です"
-        }),
+    if (
+      !date ||
+      !venue ||
+      !race
+    ) {
 
-        {
-          status:400,
-          headers:{
-            "Content-Type":
-              "application/json; charset=utf-8"
-          }
-        }
+      return jsonResponse({
 
-      );
+        success: false,
+
+        error:
+          "開催日・開催場・Rが必要です"
+
+      }, 400);
 
     }
+
+
+    /* =====================================
+       レース番号確認
+    ===================================== */
+
+    const raceNumber =
+      Number(race);
+
+
+    if (
+      !Number.isInteger(raceNumber) ||
+      raceNumber < 1 ||
+      raceNumber > 12
+    ) {
+
+      return jsonResponse({
+
+        success: false,
+
+        error:
+          "Rは1～12で指定してください"
+
+      }, 400);
+
+    }
+
+
+    /* =====================================
+       開催場コード
+    ===================================== */
 
     const jcd =
       VENUE_CODES[venue];
 
-    if(!jcd){
 
-      return new Response(
+    if (!jcd) {
 
-        JSON.stringify({
-          success:false,
-          error:`開催場「${venue}」が見つかりません`
-        }),
+      return jsonResponse({
 
-        {
-          status:400,
-          headers:{
-            "Content-Type":
-              "application/json; charset=utf-8"
-          }
-        }
+        success: false,
 
-      );
+        error:
+          `開催場「${venue}」が見つかりません`
+
+      }, 400);
 
     }
 
+
+    /* =====================================
+       日付
+    ===================================== */
+
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(date)
+    ) {
+
+      return jsonResponse({
+
+        success: false,
+
+        error:
+          "開催日の形式が正しくありません"
+
+      }, 400);
+
+    }
+
+
     const normalizedDate =
-      date.replace(/-/g,"");
+      date.replace(/-/g, "");
+
+
+    /* =====================================
+       公式URL
+    ===================================== */
 
     const racelistUrl =
       `https://www.boatrace.jp/owpc/pc/race/racelist` +
       `?hd=${normalizedDate}` +
       `&jcd=${jcd}` +
-      `&rno=${race}`;
+      `&rno=${raceNumber}`;
+
 
     const beforeUrl =
       `https://www.boatrace.jp/owpc/pc/race/beforeinfo` +
       `?hd=${normalizedDate}` +
       `&jcd=${jcd}` +
-      `&rno=${race}`;
+      `&rno=${raceNumber}`;
+
 
     const oddsUrl =
       `https://www.boatrace.jp/owpc/pc/race/odds3t` +
       `?hd=${normalizedDate}` +
       `&jcd=${jcd}` +
-      `&rno=${race}`;
+      `&rno=${raceNumber}`;
+
+
+    /* =====================================
+       HTTPヘッダー
+    ===================================== */
 
     const headers = {
 
       "User-Agent":
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) " +
-        "AppleWebKit/605.1.15 (KHTML, like Gecko) " +
+        "Mozilla/5.0 " +
+        "(iPhone; CPU iPhone OS 17_0 like Mac OS X) " +
+        "AppleWebKit/605.1.15 " +
         "Version/17.0 Mobile/15E148 Safari/604.1",
 
       "Accept":
-        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "text/html,application/xhtml+xml," +
+        "application/xml;q=0.9,*/*;q=0.8",
 
       "Accept-Language":
         "ja-JP,ja;q=0.9"
@@ -514,16 +910,20 @@ export default async(req)=>{
 
 
     /* =====================================
-       出走表
+       出走表取得
     ===================================== */
 
     const raceResponse =
       await fetch(
         racelistUrl,
-        {headers}
+        {
+          method: "GET",
+          headers
+        }
       );
 
-    if(!raceResponse.ok){
+
+    if (!raceResponse.ok) {
 
       throw new Error(
         `公式出走表取得失敗 HTTP ${raceResponse.status}`
@@ -531,8 +931,14 @@ export default async(req)=>{
 
     }
 
+
     const raceHtml =
       await raceResponse.text();
+
+
+    /* =====================================
+       6艇基本データ
+    ===================================== */
 
     const boats =
       parseRacers(raceHtml);
@@ -544,28 +950,40 @@ export default async(req)=>{
 
     let before = {
 
-      weather:null,
-      temperature:null,
-      waterTemperature:null,
-      windDirection:null,
-      windSpeed:null,
-      wave:null,
-      boats:[]
+      weather: null,
+
+      temperature: null,
+
+      waterTemperature: null,
+
+      windDirection: null,
+
+      windSpeed: null,
+
+      wave: null,
+
+      boats: []
 
     };
 
-    try{
+
+    try {
 
       const beforeResponse =
         await fetch(
           beforeUrl,
-          {headers}
+          {
+            method: "GET",
+            headers
+          }
         );
 
-      if(beforeResponse.ok){
+
+      if (beforeResponse.ok) {
 
         const beforeHtml =
           await beforeResponse.text();
+
 
         before =
           parseBeforeInfo(
@@ -574,38 +992,51 @@ export default async(req)=>{
 
       }
 
-    }catch(error){
+    } catch (beforeError) {
 
-      before={
-        weather:null,
-        temperature:null,
-        waterTemperature:null,
-        windDirection:null,
-        windSpeed:null,
-        wave:null,
-        boats:[]
+      before = {
+
+        weather: null,
+
+        temperature: null,
+
+        waterTemperature: null,
+
+        windDirection: null,
+
+        windSpeed: null,
+
+        wave: null,
+
+        boats: []
+
       };
 
     }
 
 
     /* =====================================
-       オッズ
+       3連単オッズ取得
     ===================================== */
 
-    let trifectaOdds=[];
+    let trifectaOdds = [];
 
-    let oddsError=null;
+    let oddsError = null;
 
-    try{
+
+    try {
 
       const oddsResponse =
         await fetch(
           oddsUrl,
-          {headers}
+          {
+            method: "GET",
+            headers
+          }
         );
 
-      if(!oddsResponse.ok){
+
+      if (!oddsResponse.ok) {
 
         throw new Error(
           `公式オッズ取得失敗 HTTP ${oddsResponse.status}`
@@ -613,179 +1044,167 @@ export default async(req)=>{
 
       }
 
+
       const oddsHtml =
         await oddsResponse.text();
+
 
       trifectaOdds =
         parseTrifectaOdds(
           oddsHtml
         );
 
-      if(trifectaOdds.length===0){
+
+      if (
+        trifectaOdds.length === 0
+      ) {
 
         oddsError =
           "3連単オッズを解析できませんでした";
 
       }
 
-    }catch(error){
+    } catch (error) {
 
       oddsError =
         error.message;
 
-      trifectaOdds=[];
+      trifectaOdds = [];
 
     }
 
 
     /* =====================================
-       直前情報統合
+       直前情報を6艇へ統合
     ===================================== */
 
-    before.boats.forEach(beforeBoat=>{
+    before.boats.forEach(
+      beforeBoat => {
 
-      const target =
-        boats.find(
-          boat =>
-            boat.boat === beforeBoat.boat
-        );
+        const target =
+          boats.find(
+            boat =>
+              boat.boat === beforeBoat.boat
+          );
 
-      if(!target){
-        return;
+
+        if (!target) {
+          return;
+        }
+
+
+        if (
+          beforeBoat.exhibitionTime !== null
+        ) {
+
+          target.exhibitionTime =
+            beforeBoat.exhibitionTime;
+
+        }
+
+
+        if (
+          beforeBoat.tilt !== null
+        ) {
+
+          target.tilt =
+            beforeBoat.tilt;
+
+        }
+
+
+        if (
+          beforeBoat.startExhibition !== null
+        ) {
+
+          target.startExhibition =
+            beforeBoat.startExhibition;
+
+        }
+
       }
+    );
 
-      if(beforeBoat.exhibitionTime!==null){
 
-        target.exhibitionTime =
-          beforeBoat.exhibitionTime;
+    /* =====================================
+       最終レスポンス
+    ===================================== */
 
-      }
+    return jsonResponse({
 
-      if(beforeBoat.tilt!==null){
+      success: true,
 
-        target.tilt =
-          beforeBoat.tilt;
+      source:
+        "BOAT RACE Official",
 
-      }
+      race: {
 
-      if(beforeBoat.startExhibition!==null){
+        venue,
 
-        target.startExhibition =
-          beforeBoat.startExhibition;
+        date:
+          normalizedDate,
 
-      }
+        race:
+          raceNumber,
+
+        weather:
+          before.weather,
+
+        temperature:
+          before.temperature,
+
+        waterTemperature:
+          before.waterTemperature,
+
+        windDirection:
+          before.windDirection,
+
+        windSpeed:
+          before.windSpeed,
+
+        wave:
+          before.wave,
+
+        tide: null,
+
+        boats,
+
+        odds: {
+
+          trifecta:
+            trifectaOdds
+
+        },
+
+        oddsCount:
+          trifectaOdds.length,
+
+        oddsError
+
+      },
+
+      url:
+        racelistUrl,
+
+      beforeInfoUrl:
+        beforeUrl,
+
+      oddsUrl
 
     });
 
 
-    /* =====================================
-       レスポンス
-    ===================================== */
+  } catch (error) {
 
-    return new Response(
+    return jsonResponse({
 
-      JSON.stringify({
+      success: false,
 
-        success:true,
+      error:
+        error?.message ||
+        "Unknown error"
 
-        source:"BOAT RACE Official",
-
-        race:{
-
-          venue,
-
-          date:normalizedDate,
-
-          race:Number(race),
-
-          weather:before.weather,
-
-          temperature:before.temperature,
-
-          waterTemperature:
-            before.waterTemperature,
-
-          windDirection:
-            before.windDirection,
-
-          windSpeed:
-            before.windSpeed,
-
-          wave:
-            before.wave,
-
-          tide:null,
-
-          boats,
-
-          odds:{
-
-            trifecta:
-              trifectaOdds
-
-          },
-
-          oddsCount:
-            trifectaOdds.length,
-
-          oddsError
-
-        },
-
-        url:racelistUrl,
-
-        beforeInfoUrl:beforeUrl,
-
-        oddsUrl
-
-      },null,2),
-
-      {
-
-        status:200,
-
-        headers:{
-
-          "Content-Type":
-            "application/json; charset=utf-8",
-
-          "Cache-Control":
-            "no-store"
-
-        }
-
-      }
-
-    );
-
-  }catch(error){
-
-    return new Response(
-
-      JSON.stringify({
-
-        success:false,
-
-        error:
-          error.message ||
-          "Unknown error"
-
-      }),
-
-      {
-
-        status:500,
-
-        headers:{
-
-          "Content-Type":
-            "application/json; charset=utf-8"
-
-        }
-
-      }
-
-    );
+    }, 500);
 
   }
 
