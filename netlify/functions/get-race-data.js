@@ -30,46 +30,38 @@ const VENUE_CODES = {
 
 
 /* =========================================
-   基本ユーティリティ
+   HTML → テキスト
 ========================================= */
 
-function cleanText(value) {
-  return String(value || "")
-    .replace(/\u00a0/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+function htmlToText(html) {
 
-
-function decodeHtml(value) {
-  return String(value || "")
+  return String(html || "")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/td>/gi, " ")
+    .replace(/<\/th>/gi, " ")
+    .replace(/<\/tr>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
     .replace(/&#x27;/gi, "'")
     .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">");
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+
 }
 
 
-function stripTags(value) {
+function cleanName(value) {
 
-  return decodeHtml(
-    String(value || "")
-      .replace(/<script[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[\s\S]*?<\/style>/gi, "")
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/<\/td>/gi, "\t")
-      .replace(/<\/th>/gi, "\t")
-      .replace(/<\/tr>/gi, "\n")
-      .replace(/<[^>]+>/g, " ")
-  )
-  .replace(/\r/g, "")
-  .split("\n")
-  .map(x => cleanText(x))
-  .filter(Boolean)
-  .join("\n");
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
 }
 
 
@@ -83,442 +75,211 @@ function toNumber(value) {
     return null;
   }
 
-  const match = String(value)
-    .replace(/,/g, "")
-    .match(/-?\d+(?:\.\d+)?/);
-
-  return match ? Number(match[0]) : null;
-}
-
-
-/* =========================================
-   HTMLから<tr>単位で取得
-========================================= */
-
-function getTableRows(html) {
-
-  const matches = [
-    ...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)
-  ];
-
-  return matches.map(m => {
-
-    const raw = m[1];
-
-    const text = decodeHtml(
-      raw
-        .replace(/<br\s*\/?>/gi, "\n")
-        .replace(/<\/td>/gi, "\t")
-        .replace(/<\/th>/gi, "\t")
-        .replace(/<[^>]+>/g, " ")
-    )
-    .replace(/\u00a0/g, " ")
-    .replace(/\r/g, "")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n+/g, " ")
-    .trim();
-
-    return text;
-
-  }).filter(Boolean);
-}
-
-
-/* =========================================
-   6艇の出走表行を探す
-========================================= */
-
-function findRacerRows(html) {
-
-  const rows = getTableRows(html);
-
-  /*
-   * 公式出走表の選手行には
-   *
-   * 登録番号 / 級別
-   *
-   * が存在する。
-   *
-   * 例：
-   * 4661 / A2 中島　昂章
-   */
-
-  return rows.filter(row => {
-
-    return /\b\d{4}\s*\/\s*(?:A1|A2|B1|B2)\b/.test(row);
-
-  }).slice(0, 6);
-}
-
-
-/* =========================================
-   選手名・級別
-========================================= */
-
-function parseRacerIdentity(row) {
-
-  const match = row.match(
-    /(\d{4})\s*\/\s*(A1|A2|B1|B2)\s+(.+?)\s+(?:北海道|青森|岩手|宮城|秋田|山形|福島|茨城|栃木|群馬|埼玉|千葉|東京|神奈川|新潟|富山|石川|福井|山梨|長野|岐阜|静岡|愛知|三重|滋賀|京都|大阪|兵庫|奈良|和歌山|鳥取|島根|岡山|広島|山口|徳島|香川|愛媛|高知|福岡|佐賀|長崎|熊本|大分|宮崎|鹿児島|沖縄)\/
+  const n = Number(
+    String(value)
+      .replace(/,/g, "")
+      .trim()
   );
 
-  if (!match) {
-
-    const simple = row.match(
-      /(\d{4})\s*\/\s*(A1|A2|B1|B2)\s+(.+?)(?:\s+\d{1,2}歳\/)/
-    );
-
-    if (!simple) {
-
-      return {
-        registration: null,
-        class: "",
-        name: ""
-      };
-
-    }
-
-    return {
-      registration: Number(simple[1]),
-      class: simple[2],
-      name: cleanText(simple[3])
-    };
-
-  }
-
-  return {
-    registration: Number(match[1]),
-    class: match[2],
-    name: cleanText(match[3])
-  };
-}
-
-
-/* =========================================
-   ST・勝率・モーター・ボート
-========================================= */
-
-function parseRacerStats(row) {
-
-  /*
-   * 選手行の基本構造
-   *
-   * 登録番号 / 級別 氏名
-   * 支部/出身地
-   * 年齢/体重
-   * F数
-   * L数
-   * 平均ST
-   *
-   * 全国
-   * 勝率
-   * 2連率
-   * 3連率
-   *
-   * 当地
-   * 勝率
-   * 2連率
-   * 3連率
-   *
-   * モーター
-   * No
-   * 2連率
-   * 3連率
-   *
-   * ボート
-   * No
-   * 2連率
-   * 3連率
-   */
-
-  const identity = parseRacerIdentity(row);
-
-  /*
-   * 平均ST
-   *
-   * F0 L0 0.18
-   * のような部分を取得
-   */
-
-  let averageST = null;
-
-  const stMatch = row.match(
-    /F\d+\s+L\d+\s+(\d+\.\d+)/
-  );
-
-  if (stMatch) {
-    averageST = toNumber(stMatch[1]);
-  }
-
-
-  /*
-   * 選手情報より後ろの数値を取得
-   */
-
-  let afterIdentity = row;
-
-  if (identity.registration) {
-
-    const index = row.indexOf(
-      String(identity.registration)
-    );
-
-    if (index >= 0) {
-      afterIdentity = row.slice(index);
-    }
-
-  }
-
-
-  /*
-   * 平均STの後ろから数値を取得
-   */
-
-  let statPart = afterIdentity;
-
-  if (stMatch) {
-
-    const stIndex =
-      afterIdentity.indexOf(stMatch[1]);
-
-    if (stIndex >= 0) {
-      statPart =
-        afterIdentity.slice(stIndex + stMatch[1].length);
-    }
-
-  }
-
-
-  /*
-   * 数値を全部抽出
-   */
-
-  const numbers = [
-    ...statPart.matchAll(
-      /-?\d+(?:\.\d+)?/g
-    )
-  ].map(m => Number(m[0]));
-
-
-  /*
-   * 出走表の基本的な並びから取得
-   *
-   * 全国勝率
-   * 全国2連率
-   * 全国3連率
-   *
-   * 当地勝率
-   * 当地2連率
-   * 当地3連率
-   *
-   * モーターNo
-   * モーター2連率
-   * モーター3連率
-   *
-   * ボートNo
-   * ボート2連率
-   * ボート3連率
-   */
-
-  let nationalWinRate = null;
-  let localWinRate = null;
-  let motorNo = null;
-  let motor2Rate = null;
-  let boatNo = null;
-  let boat2Rate = null;
-
-
-  /*
-   * 公式HTMLの行から
-   * まずST以降の数値列を利用する。
-   *
-   * 数値の先頭にはレース情報などが
-   * 入る場合があるため、候補を検査する。
-   */
-
-  for (let i = 0; i < numbers.length - 11; i++) {
-
-    const n1 = numbers[i];
-    const n2 = numbers[i + 1];
-    const n3 = numbers[i + 2];
-
-    const n4 = numbers[i + 3];
-    const n5 = numbers[i + 4];
-    const n6 = numbers[i + 5];
-
-    const n7 = numbers[i + 6];
-    const n8 = numbers[i + 7];
-    const n9 = numbers[i + 8];
-
-    const n10 = numbers[i + 9];
-    const n11 = numbers[i + 10];
-    const n12 = numbers[i + 11];
-
-    /*
-     * 勝率は通常0～10程度
-     * 2連率・3連率は0～100程度
-     * モーター/ボートNoは1～100程度
-     */
-
-    if (
-      n1 >= 0 &&
-      n1 <= 10 &&
-      n2 >= 0 &&
-      n2 <= 100 &&
-      n3 >= 0 &&
-      n3 <= 100 &&
-
-      n4 >= 0 &&
-      n4 <= 10 &&
-      n5 >= 0 &&
-      n5 <= 100 &&
-      n6 >= 0 &&
-      n6 <= 100 &&
-
-      n7 >= 1 &&
-      n7 <= 100 &&
-      n8 >= 0 &&
-      n8 <= 100 &&
-      n9 >= 0 &&
-      n9 <= 100 &&
-
-      n10 >= 1 &&
-      n10 <= 100 &&
-      n11 >= 0 &&
-      n11 <= 100 &&
-      n12 >= 0 &&
-      n12 <= 100
-    ) {
-
-      nationalWinRate = n1;
-      localWinRate = n4;
-
-      motorNo = n7;
-      motor2Rate = n8;
-
-      boatNo = n10;
-      boat2Rate = n11;
-
-      break;
-    }
-  }
-
-
-  /*
-   * どうしても数値列を取れない場合、
-   * row全体から勝率らしい数値を探す。
-   */
-
-  if (nationalWinRate === null) {
-
-    const fallback = row.match(
-      /(?:L\d+\s+)?(\d\.\d{2})\s+(\d{1,2}\.\d{2})\s+(\d{1,2}\.\d{2})\s+(\d\.\d{2})\s+(\d{1,2}\.\d{2})\s+(\d{1,2}\.\d{2})/
-    );
-
-    if (fallback) {
-
-      nationalWinRate = toNumber(fallback[1]);
-      localWinRate = toNumber(fallback[4]);
-
-    }
-
-  }
-
-
-  return {
-
-    registration: identity.registration,
-
-    name: identity.name,
-
-    class: identity.class,
-
-    averageST,
-
-    nationalWinRate,
-
-    localWinRate,
-
-    motorNo,
-
-    motor2Rate,
-
-    boatNo,
-
-    boat2Rate
-
-  };
+  return Number.isFinite(n) ? n : null;
 
 }
 
 
 /* =========================================
-   6艇データ作成
+   選手6艇を解析
 ========================================= */
 
 function parseRacers(html) {
 
-  const rows = findRacerRows(html);
+  const text = htmlToText(html);
 
-  const result = [];
+  /*
+   * 公式出走表では
+   *
+   * 3070 / B1 山室 展弘
+   *
+   * のように登録番号・級別・氏名が並ぶ。
+   */
 
-  for (let i = 0; i < 6; i++) {
+  const identityRegex =
+    /(\d{4})\s*\/\s*(A1|A2|B1|B2)\s+(.+?)(?=\s+(?:北海道|青森|岩手|宮城|秋田|山形|福島|茨城|栃木|群馬|埼玉|千葉|東京|神奈川|新潟|富山|石川|福井|山梨|長野|岐阜|静岡|愛知|三重|滋賀|京都|大阪|兵庫|奈良|和歌山|鳥取|島根|岡山|広島|山口|徳島|香川|愛媛|高知|福岡|佐賀|長崎|熊本|大分|宮崎|鹿児島|沖縄)\/)/g;
 
-    const row = rows[i];
+  const matches = [...text.matchAll(identityRegex)];
 
-    if (!row) {
+  const boats = [];
 
-      result.push({
-        boat: i + 1,
-        name: "",
-        class: "",
-        nationalWinRate: null,
-        localWinRate: null,
-        averageST: null,
-        motorNo: null,
-        motor2Rate: null,
-        boatNo: null,
-        boat2Rate: null
-      });
+  /*
+   * 6艇分だけ処理
+   */
 
-      continue;
+  for (let i = 0; i < Math.min(6, matches.length); i++) {
+
+    const m = matches[i];
+
+    const registration =
+      Number(m[1]);
+
+    const className =
+      m[2];
+
+    const name =
+      cleanName(m[3]);
+
+
+    /*
+     * 現在の選手から次の選手までを
+     * 1艇分のデータとして扱う。
+     */
+
+    const start =
+      m.index + m[0].length;
+
+    const end =
+      i + 1 < matches.length
+        ? matches[i + 1].index
+        : text.length;
+
+    const block =
+      text.slice(start, end);
+
+
+    /*
+     * 公式出走表の基本構造
+     *
+     * F数
+     * L数
+     * 平均ST
+     *
+     * 全国
+     * 勝率
+     * 2連率
+     * 3連率
+     *
+     * 当地
+     * 勝率
+     * 2連率
+     * 3連率
+     *
+     * モーター
+     * No
+     * 2連率
+     * 3連率
+     *
+     * ボート
+     * No
+     * 2連率
+     * 3連率
+     */
+
+    const statRegex =
+      /F\s*(\d+)\s+L\s*(\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+\.\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)/;
+
+    const stats =
+      block.match(statRegex);
+
+
+    let averageST = null;
+    let nationalWinRate = null;
+    let localWinRate = null;
+    let motorNo = null;
+    let motor2Rate = null;
+    let boatNo = null;
+    let boat2Rate = null;
+
+
+    if (stats) {
+
+      /*
+       * stats[1]  = F数
+       * stats[2]  = L数
+       * stats[3]  = 平均ST
+       *
+       * stats[4]  = 全国勝率
+       * stats[5]  = 全国2連率
+       * stats[6]  = 全国3連率
+       *
+       * stats[7]  = 当地勝率
+       * stats[8]  = 当地2連率
+       * stats[9]  = 当地3連率
+       *
+       * stats[10] = モーターNo
+       * stats[11] = モーター2連率
+       * stats[12] = モーター3連率
+       *
+       * stats[13] = ボートNo
+       * stats[14] = ボート2連率
+       * stats[15] = ボート3連率
+       */
+
+      averageST =
+        toNumber(stats[3]);
+
+      nationalWinRate =
+        toNumber(stats[4]);
+
+      localWinRate =
+        toNumber(stats[7]);
+
+      motorNo =
+        toNumber(stats[10]);
+
+      motor2Rate =
+        toNumber(stats[11]);
+
+      boatNo =
+        toNumber(stats[13]);
+
+      boat2Rate =
+        toNumber(stats[14]);
+
     }
 
-    const parsed = parseRacerStats(row);
 
-    result.push({
+    boats.push({
 
       boat: i + 1,
 
-      name: parsed.name || "",
+      registration,
 
-      class: parsed.class || "",
+      name,
 
-      nationalWinRate:
-        parsed.nationalWinRate,
+      class: className,
 
-      localWinRate:
-        parsed.localWinRate,
+      averageST,
 
-      averageST:
-        parsed.averageST,
+      nationalWinRate,
 
-      motorNo:
-        parsed.motorNo,
+      localWinRate,
 
-      motor2Rate:
-        parsed.motor2Rate,
+      motorNo,
 
-      boatNo:
-        parsed.boatNo,
+      motor2Rate,
 
-      boat2Rate:
-        parsed.boat2Rate
+      boatNo,
+
+      boat2Rate
 
     });
 
   }
 
-  return result;
+
+  /*
+   * 6艇に満たない場合はエラーにする。
+   */
+
+  if (boats.length !== 6) {
+
+    throw new Error(
+      `選手データを6艇取得できませんでした（${boats.length}/6）`
+    );
+
+  }
+
+
+  return boats;
+
 }
 
 
@@ -530,7 +291,9 @@ export default async (req) => {
 
   try {
 
-    const url = new URL(req.url);
+    const url =
+      new URL(req.url);
+
 
     const date =
       url.searchParams.get("date");
@@ -545,18 +308,29 @@ export default async (req) => {
     if (!date || !venue || !race) {
 
       return new Response(
+
         JSON.stringify({
+
           success: false,
+
           error:
-            "date・venue・race が必要です"
+            "開催日・開催場・Rが必要です"
+
         }),
+
         {
+
           status: 400,
+
           headers: {
+
             "Content-Type":
               "application/json; charset=utf-8"
+
           }
+
         }
+
       );
 
     }
@@ -569,18 +343,29 @@ export default async (req) => {
     if (!jcd) {
 
       return new Response(
+
         JSON.stringify({
+
           success: false,
+
           error:
             `開催場「${venue}」が見つかりません`
+
         }),
+
         {
+
           status: 400,
+
           headers: {
+
             "Content-Type":
               "application/json; charset=utf-8"
+
           }
+
         }
+
       );
 
     }
@@ -603,12 +388,14 @@ export default async (req) => {
         headers: {
 
           "User-Agent":
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) " +
+            "Mozilla/5.0 " +
+            "(iPhone; CPU iPhone OS 17_0 like Mac OS X) " +
             "AppleWebKit/605.1.15 " +
-            "(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+            "Version/17.0 Mobile/15E148 Safari/604.1",
 
           "Accept":
-            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "text/html,application/xhtml+xml," +
+            "application/xml;q=0.9,*/*;q=0.8",
 
           "Accept-Language":
             "ja-JP,ja;q=0.9"
@@ -633,29 +420,6 @@ export default async (req) => {
 
     const boats =
       parseRacers(html);
-
-
-    /*
-     * デバッグ用。
-     * 6艇が正しく取れているか確認しやすくする。
-     */
-
-    const validCount =
-      boats.filter(
-        b =>
-          b.name &&
-          b.class
-      ).length;
-
-
-    if (validCount < 6) {
-
-      throw new Error(
-        `出走表の解析に失敗しました。` +
-        `取得できた選手データ：${validCount}/6`
-      );
-
-    }
 
 
     return new Response(
