@@ -1,86 +1,63 @@
-function renderTrifecta(list){
+function renderTrifecta(list) {
 
-  const minP = num("minProbability",0);
+  const minP = num("minProbability", 0);
 
   const filtered = list
     .filter(x => x.probability * 100 >= minP)
-    .sort((a,b) => b.probability - a.probability);
+    .sort((a, b) => b.probability - a.probability);
 
+  $("trifecta").innerHTML = filtered.map((x, index) => {
 
-  $("trifecta").innerHTML =
-    filtered.map((x,index) => {
+    const key = x.combo.join("-");
 
-      const key =
-        x.combo.join("-");
+    const odds = fetchedOdds[key];
 
-      const odds =
-        fetchedOdds[key];
+    const oddsValue =
+      odds !== undefined &&
+      odds !== null &&
+      odds !== ""
+        ? Number(odds).toFixed(1)
+        : "";
 
-      return `
+    return `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${key}</td>
+        <td>${(x.probability * 100).toFixed(2)}%</td>
+        <td>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            data-odds="${key}"
+            value="${oddsValue}"
+            placeholder="オッズ"
+          >
+        </td>
+        <td data-expected="${key}">-</td>
+        <td data-profit="${key}">-</td>
+        <td data-recovery="${key}">-</td>
+      </tr>
+    `;
 
-<tr>
-
-<td>${index+1}</td>
-
-<td class="buy">
-${key}
-</td>
-
-<td>
-${(x.probability*100).toFixed(2)}%
-</td>
-
-<td>
-
-<input
- type="number"
- step="0.1"
- min="0"
- data-odds="${x.combo.join('')}"
- value="${odds !== undefined ? odds : ''}"
- placeholder="${odds !== undefined ? '' : 'オッズ'}">
-
-</td>
-
-<td class="expected-payout">
--
-</td>
-
-<td class="expected-profit">
--
-</td>
-
-<td class="expected-roi">
--
-</td>
-
-<td class="judgement">
--
-</td>
-
-</tr>
-
-`;
-
-    }).join("");
-
+  }).join("");
 
   attachOddsEvents();
 
-
   /*
-    取得したオッズを
-    自動計算
-  */
-
+   * 取得済みオッズがあれば
+   * 自動計算を実行
+   */
   document
     .querySelectorAll("[data-odds]")
     .forEach(input => {
 
-      if(input.value){
+      if (input.value !== "") {
 
         input.dispatchEvent(
-          new Event("input")
+          new Event("input", {
+            bubbles: true
+          })
         );
 
       }
