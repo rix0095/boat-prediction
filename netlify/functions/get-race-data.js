@@ -422,29 +422,53 @@ export default async (req) => {
       parseRacers(html);
 
 
-    return new Response(
+return new Response(
 
-      JSON.stringify({
+  JSON.stringify({
 
-        success: true,
+    success: true,
 
-        source:
-          "BOAT RACE Official",
+    source:
+      "BOAT RACE Official",
 
-        date:
-          normalizedDate,
+    race: {
 
-        venue,
+      venue,
 
-        race:
-          Number(race),
+      date:
+        normalizedDate,
 
-        url:
-          targetUrl,
+      race:
+        Number(race),
 
-        boats
+      weather: null,
 
-      }, null, 2),
+      temperature: null,
+
+      waterTemperature: null,
+
+      windDirection: null,
+
+      windSpeed: null,
+
+      wave: null,
+
+      tide: null,
+
+      boats,
+
+      odds: {
+
+        trifecta: []
+
+      }
+
+    },
+
+    url:
+      targetUrl
+
+  }, null, 2),
 
       {
 
