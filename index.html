@@ -2303,13 +2303,22 @@ async function fetchRaceData(){
   const status = $("fetchStatus");
 
   if(!date || !venue || !race){
+
     status.className = "status red";
-    status.textContent = "開催日・開催場・Rを入力してください。";
+
+    status.textContent =
+      "開催日・開催場・Rを入力してください。";
+
     return;
+
   }
 
+
   status.className = "status blue";
-  status.textContent = "公式データを取得しています…";
+
+  status.textContent =
+    "公式データを取得しています…";
+
 
   try{
 
@@ -2319,53 +2328,217 @@ async function fetchRaceData(){
       `&venue=${encodeURIComponent(venue)}` +
       `&race=${encodeURIComponent(race)}`;
 
-    const response = await fetch(url);
 
-    const data = await response.json();
+    const response =
+      await fetch(url);
+
+
+    const data =
+      await response.json();
+
 
     if(!response.ok || !data.success){
-      throw new Error(data.error || "データ取得に失敗しました");
+
+      throw new Error(
+        data.error ||
+        "データ取得に失敗しました"
+      );
+
     }
 
-    data.race.boats.forEach(boat => {
 
-      const i = boat.boat;
+    /* =========================================
+       raceを取得
+    ========================================= */
 
-      if(boat.name)
-        $("name"+i).value = boat.name;
+    const raceData =
+      data.race;
 
-      if(boat.class)
-        $("class"+i).value = boat.class;
 
-      if(boat.nationalWinRate !== null)
-        $("nat"+i).value = boat.nationalWinRate;
+    /* =========================================
+       ① レース基本情報
+    ========================================= */
 
-      if(boat.localWinRate !== null)
-        $("local"+i).value = boat.localWinRate;
+    if(raceData.temperature !== null){
 
-      if(boat.averageST !== null)
-        $("st"+i).value = boat.averageST;
+      $("water").value =
+        $("water").value;
 
-      if(boat.motorNo !== null)
-        $("motorNo"+i).value = boat.motorNo;
+    }
 
-      if(boat.motor2Rate !== null)
-        $("motor2_"+i).value = boat.motor2Rate;
 
-      if(boat.boat2Rate !== null)
-        $("boat2_"+i).value = boat.boat2Rate;
+    if(raceData.windSpeed !== null){
+
+      $("wind").value =
+        raceData.windSpeed;
+
+    }
+
+
+    if(raceData.wave !== null){
+
+      $("wave").value =
+        raceData.wave;
+
+    }
+
+
+    if(raceData.waterTemperature !== null){
+
+      $("water").value =
+        raceData.waterTemperature;
+
+    }
+
+
+    if(raceData.tide){
+
+      $("tide").value =
+        raceData.tide;
+
+    }
+
+
+    /* =========================================
+       ② 6艇基本データ
+    ========================================= */
+
+    raceData.boats.forEach(boat=>{
+
+      const i =
+        boat.boat;
+
+
+      if(boat.name){
+
+        $("name"+i).value =
+          boat.name;
+
+      }
+
+
+      if(boat.class){
+
+        $("class"+i).value =
+          boat.class;
+
+      }
+
+
+      if(boat.nationalWinRate !== null){
+
+        $("nat"+i).value =
+          boat.nationalWinRate;
+
+      }
+
+
+      if(boat.localWinRate !== null){
+
+        $("local"+i).value =
+          boat.localWinRate;
+
+      }
+
+
+      if(boat.averageST !== null){
+
+        $("st"+i).value =
+          boat.averageST;
+
+      }
+
+
+      if(boat.motorNo !== null){
+
+        $("motorNo"+i).value =
+          boat.motorNo;
+
+      }
+
+
+      if(boat.motor2Rate !== null){
+
+        $("motor2_"+i).value =
+          boat.motor2Rate;
+
+      }
+
+
+      if(boat.boat2Rate !== null){
+
+        $("boat2_"+i).value =
+          boat.boat2Rate;
+
+      }
+
+
+      /* =====================================
+         ③ 直前情報
+      ===================================== */
+
+      if(boat.exhibitionTime !== null){
+
+        $("preTime"+i).value =
+          boat.exhibitionTime;
+
+      }
+
+
+      if(boat.tilt !== null){
+
+        $("tilt").value =
+          boat.tilt;
+
+      }
+
+
+      /*
+        スタート展示は
+        現在のHTMLでは直接入力欄がないので
+        ST評価にはまだ使用しない。
+      */
 
     });
 
-    status.className = "status green";
-    status.textContent =
-      "公式データの取得が完了しました。6艇データを確認してください。";
+
+    /* =========================================
+       成功表示
+    ========================================= */
+
+    status.className =
+      "status green";
+
+
+    status.innerHTML =
+
+      "<b>公式データ取得完了</b><br>" +
+
+      "① レース環境<br>" +
+
+      "② 6艇基本データ<br>" +
+
+      "③ 展示タイム・チルト<br>" +
+
+      "を取得しました。";
+
+
+    /*
+      品質チェックも更新
+    */
+
+    qualityCheck();
+
 
   }catch(error){
 
-    status.className = "status red";
+    status.className =
+      "status red";
+
+
     status.textContent =
-      "取得エラー：" + error.message;
+      "取得エラー：" +
+      error.message;
 
   }
 
