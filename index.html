@@ -884,7 +884,6 @@ function generateRaceFlow(evals){
    着順確率 Ver.2
    総合評価＋艇番＋ST＋モーター＋展示を反映
 ========================================= */
-
 function calculateFinishProbabilities(evals){
 
   const result={};
@@ -896,12 +895,11 @@ function calculateFinishProbabilities(evals){
   /*
     基本ウェイト
 
-    総合評価だけではなく、
-    ・艇番
-    ・ST
-    ・モーター
-    ・展示
-    を追加補正する。
+    総合評価
+    ＋ ST
+    ＋ モーター
+    ＋ 展示
+    ＋ 艇番補正
   */
 
   const weights={};
@@ -942,29 +940,30 @@ function calculateFinishProbabilities(evals){
     weight += exhibition*0.08;
 
     /*
-      1号艇はイン有利を考慮
-      ※過度に固定しない
+      1号艇イン有利
     */
     if(boat===1){
       weight += 0.08;
     }
 
     /*
-      2～4号艇は攻め・差し候補
+      2～4号艇
+      差し・まくり差し等を考慮
     */
     if(boat>=2 && boat<=4){
       weight += 0.025;
     }
 
     /*
-      5・6号艇は外枠補正
+      5・6号艇
+      外枠補正
     */
     if(boat>=5){
       weight -= 0.025;
     }
 
     /*
-      負の値を防止
+      ウェイトを確率計算用に変換
     */
     weights[boat]=Math.exp(weight*7);
 
@@ -973,10 +972,10 @@ function calculateFinishProbabilities(evals){
 
   /*
     Monte Carlo
-    順位を30,000回シミュレーション
+    50,000回シミュレーション
   */
 
-  const iterations=30000;
+  const iterations=50000;
 
   for(let n=0;n<iterations;n++){
 
@@ -992,6 +991,7 @@ function calculateFinishProbabilities(evals){
       });
 
       let r=Math.random()*totalWeight;
+
       let selected=remaining[remaining.length-1];
 
       for(const b of remaining){
@@ -999,8 +999,10 @@ function calculateFinishProbabilities(evals){
         r-=weights[b];
 
         if(r<=0){
+
           selected=b;
           break;
+
         }
 
       }
@@ -1014,15 +1016,22 @@ function calculateFinishProbabilities(evals){
 
     }
 
+    /*
+      シミュレーション結果を
+      着順別にカウント
+    */
+
     ranking.forEach((boat,rank)=>{
+
       result[boat][rank]++;
+
     });
 
   }
 
 
   /*
-    確率化
+    件数 → 確率へ変換
   */
 
   boatNumbers.forEach(i=>{
@@ -1035,30 +1044,16 @@ function calculateFinishProbabilities(evals){
 
 
   /*
-    各着順の合計が100%になるよう
-    最終正規化
+    各着順の合計は
+    Monte Carloの結果だけで
+    ほぼ100%になるため、
+    追加の正規化は行わない。
   */
 
-  for(let rank=0;rank<6;rank++){
-
-    let total=0;
-
-    boatNumbers.forEach(i=>{
-      total+=result[i][rank];
-    });
-
-    if(total>0){
-
-      boatNumbers.forEach(i=>{
-        result[i][rank]/=total;
-      });
-
-    }
-
-  }
-
   return result;
+
 }
+
 
 
 
