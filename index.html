@@ -1590,131 +1590,261 @@ function attachOddsEvents(){
 
 
 /* =========================================
-   期待値再計算
+   ⑩ 期待値・期待回収率を再計算
 ========================================= */
 
 function recalculateEV(){
 
- const rows=[...document.querySelectorAll("#trifecta tr")];
+  const rows = [...document.querySelectorAll("#trifecta tr")];
 
- const results=[];
+  const results = [];
 
- rows.forEach(row=>{
+  rows.forEach(row => {
 
-   const odds=parseFloat(
-     row.querySelector("[data-odds]")?.value
-   );
+    const oddsInput =
+      row.querySelector("[data-odds]");
 
-   const p=parseFloat(
-     row.children[2].textContent.replace("%","")
-   )/100;
+    const odds =
+      parseFloat(oddsInput?.value);
 
-   if(!Number.isFinite(odds)||!Number.isFinite(p))return;
+    const probability =
+      parseFloat(
+        row.children[2].textContent.replace("%","")
+      ) / 100;
 
-   const payout=100*odds;
-   const expected=payout*p;
-   const profit=expected-100;
-   const roi=expected;
+    /*
+      オッズまたは確率が無い買い目は除外
+    */
+    if(
+      !Number.isFinite(odds) ||
+      odds <= 0 ||
+      !Number.isFinite(probability)
+    ){
+      return;
+    }
 
-   results.push({
-     combo:row.children[1].textContent.trim(),
-     probability:p,
-     odds,
-     expected,
-     profit,
-     roi
-   });
+    /*
+      100円購入を基準に計算
+    */
 
- });
+    const bet = 100;
 
- results.sort((a,b)=>b.roi-a.roi);
+    /*
+      的中した場合の払戻
+    */
+    const payout = bet * odds;
 
- if(!results.length){
+    /*
+      1回あたりの期待払戻
+      ＝ 的中確率 × 払戻
+    */
+    const expectedPayout =
+      probability * payout;
 
-   $("finalRecommendation").innerHTML=
-   `<div class="status">オッズを入力した買い目がありません。</div>`;
+    /*
+      1回あたりの期待収支
+      ＝ 期待払戻 − 購入金額
+    */
+    const expectedProfit =
+      expectedPayout - bet;
 
-   return;
- }
+    /*
+      期待回収率
+      ＝ 期待払戻 ÷ 購入金額 × 100
+    */
+    const expectedROI =
+      (expectedPayout / bet) * 100;
 
- const top=results.slice(0,10);
+    results.push({
 
- $("finalRecommendation").innerHTML=`
+      combo:
+        row.children[1].textContent.trim(),
 
- <div class="status green">
+      probability,
 
- <div class="big">
-期待値上位
- </div>
+      odds,
 
- <p>
-入力されたオッズを基準に期待回収率を計算しました。
- </p>
+      payout,
 
- </div>
+      expectedPayout,
 
- <div class="tablewrap">
+      expectedProfit,
 
- <table>
+      expectedROI
 
- <thead>
- <tr>
- <th>順位</th>
- <th>買い目</th>
- <th>的中確率</th>
- <th>オッズ</th>
- <th>期待払戻</th>
- <th>期待収支</th>
- <th>期待回収率</th>
- </tr>
- </thead>
+    });
 
- <tbody>
+  });
 
- ${top.map((x,i)=>`
 
- <tr class="${i===0?'rank1':''}">
+  /*
+    期待回収率が高い順に並べる
+  */
 
- <td>${i+1}</td>
+  results.sort(
+    (a,b) =>
+      b.expectedROI - a.expectedROI
+  );
 
- <td class="buy">${x.combo}</td>
 
- <td>${(x.probability*100).toFixed(2)}%</td>
+  /*
+    オッズを入力した買い目がない場合
+  */
 
- <td>${x.odds.toFixed(1)}倍</td>
+  if(!results.length){
 
- <td>${x.expected.toFixed(1)}円</td>
+    $("finalRecommendation").innerHTML = `
 
- <td class="${x.profit>=0?'good':'bad'}">
- ${x.profit.toFixed(1)}円
- </td>
+      <div class="status red">
 
- <td class="${x.roi>=100?'good':'bad'}">
- ${x.roi.toFixed(1)}%
- </td>
+        <b>オッズが入力されていません。</b><br>
 
- </tr>
+        ⑨の3連単一覧から、
+        買い目のオッズを入力してください。
 
- `).join("")}
+      </div>
 
- </tbody>
+    `;
 
- </table>
+    return;
+  }
 
- </div>
 
- <div class="status blue">
+  /*
+    上位10点を表示
+  */
 
- <b>注意：</b>
-この期待値は現在の予想モデルが算出した確率を基準にしています。
-実際の払戻や利益を保証するものではありません。
+  const top =
+    results.slice(0,10);
 
- </div>
 
- `;
+  $("finalRecommendation").innerHTML = `
+
+    <div class="status green">
+
+      <div class="big">
+        期待値上位10点
+      </div>
+
+      <p>
+        的中確率とオッズから、
+        100円購入した場合の期待値を計算しています。
+      </p>
+
+    </div>
+
+
+    <div class="tablewrap">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>順位</th>
+            <th>買い目</th>
+            <th>的中確率</th>
+            <th>オッズ</th>
+            <th>期待払戻</th>
+            <th>期待収支</th>
+            <th>期待回収率</th>
+            <th>判定</th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          ${top.map((x,i)=>`
+
+            <tr class="${i===0?'rank1':''}">
+
+              <td>
+                <b>${i+1}</b>
+              </td>
+
+              <td class="buy">
+                ${x.combo}
+              </td>
+
+              <td>
+                ${(x.probability*100).toFixed(2)}%
+              </td>
+
+              <td>
+                ${x.odds.toFixed(1)}倍
+              </td>
+
+              <td>
+                ${x.expectedPayout.toFixed(1)}円
+              </td>
+
+              <td class="${x.expectedProfit>=0?'good':'bad'}">
+
+                ${x.expectedProfit>=0?'+':''}
+                ${x.expectedProfit.toFixed(1)}円
+
+              </td>
+
+              <td class="${x.expectedROI>=100?'good':'bad'}">
+
+                ${x.expectedROI.toFixed(1)}%
+
+              </td>
+
+              <td>
+
+                ${
+                  x.expectedROI >= 110
+                  ? '<span class="good">強く買い候補</span>'
+                  : x.expectedROI >= 100
+                  ? '<span class="good">買い候補</span>'
+                  : x.expectedROI >= 90
+                  ? '<span>検討</span>'
+                  : '<span class="bad">見送り</span>'
+                }
+
+              </td>
+
+            </tr>
+
+          `).join("")}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+    <div class="status blue">
+
+      <b>計算基準</b><br><br>
+
+      100円購入を基準にしています。<br>
+      期待払戻 ＝ 的中確率 × オッズ × 100円<br>
+      期待収支 ＝ 期待払戻 − 100円<br>
+      期待回収率 ＝ 期待払戻 ÷ 100円 × 100
+
+    </div>
+
+
+    <div class="status">
+
+      <b>注意：</b><br>
+
+      期待値は現在の予想モデルが算出した
+      的中確率を基準にしています。
+      実際の的中・払戻・利益を保証するものではありません。
+
+    </div>
+
+  `;
 
 }
-
 
 /* =========================================
    メイン予想処理
