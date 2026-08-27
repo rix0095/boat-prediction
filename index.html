@@ -1194,35 +1194,165 @@ function permutations3(){
 */
 
 /* =========================================
-   ⑨ 3連単120通りの確率計算 Ver.3
+   ⑨ 3連単120通りの確率計算 Ver.4
 ========================================= */
 
 /*
-  6艇の着順確率から、
-  3連単120通りの確率を計算する。
+  ⑧で計算した
+  「各艇が1着～6着になる確率」
+  を使って、3連単120通りを計算する。
+
+  今回の方式では、
+
+  ① 1着を決める
+  ↓
+  ② 1着艇を除いた5艇から2着を決める
+  ↓
+  ③ 1着・2着艇を除いた4艇から3着を決める
+  ↓
+  ④ 残り3艇の順位まで含めて、
+     その着順パターンが発生する確率を計算
+
+  という「条件付き順位選択方式」にする。
 
   重要：
-  「Aが1着になった条件でBが2着」
-  「A・Bが1・2着になった条件でCが3着」
-  という条件付き確率に近づけるため、
 
-  Aの1着確率
+  「Aが1着」
   ↓
-  Aを除いた場合のBの2着候補としての強さ
+  「Aを除いた条件でBが2着」
   ↓
-  A・Bを除いた場合のCの3着候補としての強さ
+  「A・Bを除いた条件でCが3着」
 
   という順番で計算する。
 
-  最後に120通りの合計を100%に正規化する。
+  さらに、
+  3着まで同じでも残り3艇の順位は6パターン存在するため、
+  その6パターンをすべて合計する。
+
+  これにより、
+  3連単120通りの確率合計が100%になる。
 */
+
 
 function calculateTrifecta(prob){
 
   const list = [];
 
+
   /* =========================================
-     ① 6艇それぞれの順位別確率を取得
+     ① 残り艇から指定順位を選ぶ確率
+     
+     rank = 0 → 1着
+     rank = 1 → 2着
+     rank = 2 → 3着
+     ...
+  ========================================= */
+
+  function conditionalProbability(
+    boat,
+    rank,
+    remaining
+  ){
+
+    /*
+      現在の順位における
+      その艇の基本確率
+    */
+    const base =
+      Math.max(
+        0,
+        prob[boat]?.[rank] || 0
+      );
+
+
+    /*
+      残っている艇の
+      同じ順位における確率を合計
+    */
+    let total = 0;
+
+    remaining.forEach(x => {
+
+      total +=
+        Math.max(
+          0,
+          prob[x]?.[rank] || 0
+        );
+
+    });
+
+
+    /*
+      合計が0の場合は計算不能
+    */
+    if(total <= 0){
+      return 0;
+    }
+
+
+    /*
+      「現在残っている艇の中で、
+      この艇がこの順位になる確率」
+      として正規化
+    */
+    return base / total;
+
+  }
+
+
+  /* =========================================
+     ② 残り3艇の全順位パターンを作る
+     
+     例えば残りが
+
+     4・5・6
+
+     の場合、
+
+     4-5-6
+     4-6-5
+     5-4-6
+     5-6-4
+     6-4-5
+     6-5-4
+
+     の6通り。
+  ========================================= */
+
+  function permutations(array){
+
+    if(array.length <= 1){
+      return [array];
+    }
+
+    const result = [];
+
+    array.forEach((value,index)=>{
+
+      const remaining =
+        array.slice(0,index)
+             .concat(array.slice(index+1));
+
+      const rest =
+        permutations(remaining);
+
+      rest.forEach(r => {
+
+        result.push(
+          [value,...r]
+        );
+
+      });
+
+    });
+
+    return result;
+
+  }
+
+
+  /* =========================================
+     ③ 120通りの3連単を作成
   ========================================= */
 
   boatNumbers.forEach(a => {
@@ -1231,163 +1361,250 @@ function calculateTrifecta(prob){
 
       boatNumbers.forEach(c => {
 
+
         /*
-          同じ艇は使わない
+          同じ艇は使用しない
         */
-        if(a === b || a === c || b === c){
+        if(
+          a === b ||
+          a === c ||
+          b === c
+        ){
           return;
         }
 
 
-        /* =========================================
-           ② Aが1着になる確率
-        ========================================= */
+        /* =====================================
+           ④ 1着
+           
+           Aが1着になる確率
+        ===================================== */
+
+        const remainingAfterFirst =
+          boatNumbers.filter(
+            x => x !== a
+          );
+
 
         const pA1 =
-          Math.max(0, prob[a][0]);
+          conditionalProbability(
+            a,
+            0,
+            boatNumbers
+          );
 
 
-        /*
-          Aが1着になった後、
-          残り5艇で2着を争う。
-        */
-
-
-        /* =========================================
-           ③ Bの2着候補としての強さ
-           
-           Bの「2着確率」を、
-           A以外の艇の2着確率と比較する。
-        ========================================= */
-
-        let secondTotal = 0;
-
-        boatNumbers.forEach(x => {
-
-          if(x === a){
-            return;
-          }
-
-          secondTotal +=
-            Math.max(0, prob[x][1]);
-
-        });
-
-
-        let pB2 = 0;
-
-        if(secondTotal > 0){
-
-          pB2 =
-            Math.max(0, prob[b][1])
-            / secondTotal;
-
+        if(pA1 <= 0){
+          return;
         }
 
 
-        /*
-          Aが1着になった条件で
-          Bが2着になる確率として使用
-        */
+        /* =====================================
+           ⑤ 2着
+           
+           Aが1着になった後、
 
-        pB2 =
-          clamp(pB2, 0, 1);
+           「残った5艇の中でBが2着」
 
+           を計算する。
+        ===================================== */
 
-        /* =========================================
-           ④ A・Bが1着・2着になった後、
-              Cが3着になる確率
-        ========================================= */
-
-        let thirdTotal = 0;
-
-
-        boatNumbers.forEach(x => {
-
-          /*
-            AとBはすでに1着・2着なので除外
-          */
-          if(x === a || x === b){
-            return;
-          }
-
-          thirdTotal +=
-            Math.max(0, prob[x][2]);
-
-        });
+        const pB2 =
+          conditionalProbability(
+            b,
+            1,
+            remainingAfterFirst
+          );
 
 
-        let pC3 = 0;
-
-
-        if(thirdTotal > 0){
-
-          pC3 =
-            Math.max(0, prob[c][2])
-            / thirdTotal;
-
+        if(pB2 <= 0){
+          return;
         }
 
 
-        /*
-          Cの3着条件付き確率
-        */
-
-        pC3 =
-          clamp(pC3, 0, 1);
-
-
-        /* =========================================
-           ⑤ 3連単の基本確率
+        /* =====================================
+           ⑥ 3着
            
-           Aが1着
-           ×
-           Aが1着になった条件でBが2着
-           ×
-           A・Bが1・2着になった条件でCが3着
-        ========================================= */
+           A・Bが1着・2着になった後、
 
-        let probability =
+           「残った4艇の中でCが3着」
+
+           を計算する。
+        ===================================== */
+
+        const remainingAfterSecond =
+          remainingAfterFirst.filter(
+            x => x !== b
+          );
+
+
+        const pC3 =
+          conditionalProbability(
+            c,
+            2,
+            remainingAfterSecond
+          );
+
+
+        if(pC3 <= 0){
+          return;
+        }
+
+
+        /* =====================================
+           ⑦ A-B-Cが1・2・3着になる確率
+        ===================================== */
+
+        const firstThreeProbability =
           pA1 *
           pB2 *
           pC3;
 
 
-        /* =========================================
-           ⑥ 3艇の順位適性による微調整
-           
-           極端な組み合わせを少し抑える。
+        /*
+          ここまでなら、
 
-           補正は強くしすぎず、
-           基本的には条件付き確率を優先する。
-        ========================================= */
+          A 1着
+          B 2着
+          C 3着
 
-        const strength =
-          (
-            prob[a][0] +
-            prob[b][1] +
-            prob[c][2]
-          ) / 3;
+          までしか考えていない。
 
 
-        const adjustment =
-          0.85 +
-          strength * 0.30;
+          しかし実際には、
+          残り3艇にも4～6着の順位がある。
 
 
-        probability *= adjustment;
+          そこで残り3艇の6パターンを全部計算する。
+        */
 
 
-        /* =========================================
-           ⑦ 結果を保存
-        ========================================= */
+        const remainingAfterThird =
+          remainingAfterSecond.filter(
+            x => x !== c
+          );
+
+
+        const restRankings =
+          permutations(
+            remainingAfterThird
+          );
+
+
+        let restProbability = 0;
+
+
+        /* =====================================
+           ⑧ 残り3艇の順位を計算
+        ===================================== */
+
+        restRankings.forEach(
+          ranking => {
+
+
+            /*
+              ここでは
+
+              ranking[0] → 4着
+              ranking[1] → 5着
+              ranking[2] → 6着
+
+              とする。
+            */
+
+            let probability =
+              firstThreeProbability;
+
+
+            let remaining =
+              [...remainingAfterSecond];
+
+            /*
+              Cはすでに3着なので除外
+            */
+            remaining =
+              remaining.filter(
+                x => x !== c
+              );
+
+
+            /*
+              4着
+            */
+            const p4 =
+              conditionalProbability(
+                ranking[0],
+                3,
+                remaining
+              );
+
+            probability *= p4;
+
+
+            remaining =
+              remaining.filter(
+                x => x !== ranking[0]
+              );
+
+
+            /*
+              5着
+            */
+            const p5 =
+              conditionalProbability(
+                ranking[1],
+                4,
+                remaining
+              );
+
+            probability *= p5;
+
+
+            remaining =
+              remaining.filter(
+                x => x !== ranking[1]
+              );
+
+
+            /*
+              6着
+            */
+            const p6 =
+              conditionalProbability(
+                ranking[2],
+                5,
+                remaining
+              );
+
+            probability *= p6;
+
+
+            /*
+              この3艇の4～6着パターンを
+              3連単A-B-Cに加算
+            */
+            restProbability += probability;
+
+          }
+        );
+
+
+        /* =====================================
+           ⑨ 3連単A-B-Cの最終確率
+        ===================================== */
+
+        const probability =
+          Math.max(
+            0,
+            restProbability
+          );
+
 
         list.push({
 
           combo:[a,b,c],
 
-          probability:
-            Math.max(0, probability)
+          probability
 
         });
 
@@ -1399,7 +1616,7 @@ function calculateTrifecta(prob){
 
 
   /* =========================================
-     ⑧ 120通りの合計を計算
+     ⑩ 120通りの合計を確認
   ========================================= */
 
   let total = 0;
@@ -1412,7 +1629,7 @@ function calculateTrifecta(prob){
 
 
   /* =========================================
-     ⑨ 合計100%になるよう正規化
+     ⑪ 120通りを100%に正規化
   ========================================= */
 
   if(total > 0){
@@ -1428,19 +1645,19 @@ function calculateTrifecta(prob){
 
 
   /* =========================================
-     ⑩ 的中確率の高い順に並べる
+     ⑫ 的中確率の高い順に並べる
   ========================================= */
 
-  list.sort((a,b) =>
-    b.probability -
-    a.probability
+  list.sort(
+    (a,b) =>
+      b.probability -
+      a.probability
   );
 
 
   return list;
 
 }
-
 
 /* =========================================
    評価表表示
