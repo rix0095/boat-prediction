@@ -889,7 +889,569 @@ function parseOdds3T(html) {
 
 }
 
+/* =========================================
+   3連単オッズ取得
+   BOAT RACE公式
+========================================= */
 
+function parseTrifectaOdds(html) {
+
+  const results = [];
+
+  /*
+    公式3連単オッズページの
+    table / tr / td を取得
+  */
+
+  const rows = [
+    ...String(html || "").matchAll(
+      /<tr[\s\S]*?>([\s\S]*?)<\/tr>/gi
+    )
+  ];
+
+  for (const row of rows) {
+
+    const rowHtml = row[1];
+
+    const cells = [
+      ...rowHtml.matchAll(
+        /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi
+      )
+    ].map(m => {
+
+      return htmlToText(m[1]);
+
+    });
+
+
+    /*
+      3連単オッズ表は、
+      1行に複数の
+
+      1着 / 2着 / 3着 / オッズ
+
+      の組み合わせが並ぶ。
+
+      公式ページの構造変更にも
+      ある程度耐えるように、
+      3セル単位で解析する。
+    */
+
+    if (cells.length < 3) {
+      continue;
+    }
+
+
+    for (
+      let i = 0;
+      i + 2 < cells.length;
+      i += 3
+    ) {
+
+      const a =
+        Number(cells[i]);
+
+      const b =
+        Number(cells[i + 1]);
+
+      const odds =
+        toNumber(cells[i + 2]);
+
+
+      /*
+        正常な3連単組み合わせか確認
+      */
+
+      if (
+        !Number.isInteger(a) ||
+        !Number.isInteger(b) ||
+        a < 1 ||
+        a > 6 ||
+        b < 1 ||
+        b > 6 ||
+        a === b ||
+        odds === null ||
+        odds <= 0
+      ) {
+
+        continue;
+
+      }
+
+
+      /*
+        この行だけでは3着艇が
+        次のセルに入るケースもあるため、
+        公式ページの実際の並びを
+        下記の別方式でも解析する。
+      */
+
+    }
+
+  }
+
+
+  /*
+    公式ページをテキスト化して、
+    3連単の組み合わせを抽出する。
+
+    公式ページでは例えば
+
+    2 3 8.1
+    4 5.9
+    5 14.7
+    6 57.0
+
+    のように、1着固定で
+    2着・3着・オッズが並ぶ。
+  */
+
+  const text =
+    htmlToText(html);
+
+
+  const start =
+    text.indexOf("3連単オッズ");
+
+
+  if (start < 0) {
+
+    throw new Error(
+      "公式3連単オッズ表が見つかりません"
+    );
+
+  }
+
+
+  const oddsText =
+    text.slice(start);
+
+
+  /*
+    「1着艇」「2着艇」「3着艇」「オッズ」
+    の組み合わせを取得するため、
+    数字の並びを解析する。
+  */
+
+  const numberTokens = [
+    ...oddsText.matchAll(
+      /\b\d+(?:\.\d+)?\b/g
+    )
+  ].map(m => ({
+    value: m[0],
+    index: m.index
+  }));
+
+
+  /*
+    公式ページのHTMLテーブルから
+    より確実に120通りを取得する。
+  */
+
+  const tableResults = [];
+
+
+  for (const row of rows) {
+
+    const rowHtml = row[1];
+
+    const cells = [
+      ...rowHtml.matchAll(
+        /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi
+      )
+    ].map(m =>
+      htmlToText(m[1])
+    );
+
+
+    /*
+      1行に18セルの場合、
+
+      1着
+      2着
+      オッズ
+
+      が6組存在する。
+
+      公式ページの3連単表は
+      この構造で取得できる。
+    */
+
+    if (cells.length < 3) {
+      continue;
+    }
+
+
+    /*
+      3セル単位で解析
+    */
+
+    for (
+      let i = 0;
+      i + 2 < cells.length;
+      i += 3
+    ) {
+
+      const first =
+        Number(cells[i]);
+
+      const second =
+        Number(cells[i + 1]);
+
+      const odd =
+        toNumber(cells[i + 2]);
+
+
+      if (
+        Number.isInteger(first) &&
+        Number.isInteger(second) &&
+        first >= 1 &&
+        first <= 6 &&
+        second >= 1 &&
+        second <= 6 &&
+        first !== second &&
+        odd !== null &&
+        odd > 0
+      ) {
+
+        tableResults.push({
+
+          first,
+          second,
+          odds: odd
+
+        });
+
+      }
+
+    }
+
+  }
+
+
+  /*
+    公式オッズ表は
+
+    1着固定
+    ↓
+    2着候補
+    ↓
+    3着候補
+
+    の構造なので、
+    HTMLから取得したデータを
+    3連単に変換する。
+  */
+
+
+  /*
+    公式ページの各セル構造に
+    対応するため、
+    「1着固定ブロック」を解析する。
+  */
+
+  const finalResults = [];
+
+
+  /*
+    テーブル内の全セルを取得
+  */
+
+  const allCells = [];
+
+  for (const row of rows) {
+
+    const rowHtml = row[1];
+
+    const cells = [
+      ...rowHtml.matchAll(
+        /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi
+      )
+    ].map(m =>
+      htmlToText(m[1])
+    );
+
+    if (cells.length) {
+      allCells.push(cells);
+    }
+
+  }
+
+
+  /*
+    公式ページでは各「1着艇」について
+    2着・3着・オッズがまとまっている。
+
+    最終的には重複を排除して
+    120通りにする。
+  */
+
+  const map = new Map();
+
+
+  /*
+    数字3つの組み合わせを
+    全体から抽出する。
+  */
+
+  for (const row of allCells) {
+
+    for (
+      let i = 0;
+      i + 2 < row.length;
+      i++
+    ) {
+
+      const values = [
+        row[i],
+        row[i + 1],
+        row[i + 2]
+      ];
+
+      /*
+        3連単として成立する
+        3艇＋オッズのデータか確認
+      */
+
+      const nums =
+        values.map(v =>
+          toNumber(v)
+        );
+
+
+      if (
+        nums[0] !== null &&
+        nums[1] !== null &&
+        nums[2] !== null
+      ) {
+
+        /*
+          3つとも艇番の場合は除外。
+          オッズは小数・大きな数字になる。
+        */
+
+        if (
+          Number.isInteger(nums[0]) &&
+          Number.isInteger(nums[1]) &&
+          nums[0] >= 1 &&
+          nums[0] <= 6 &&
+          nums[1] >= 1 &&
+          nums[1] <= 6 &&
+          nums[0] !== nums[1] &&
+          nums[2] > 0
+        ) {
+
+          /*
+            ここではまだ3着がないため、
+            次のセルも確認する。
+          */
+
+        }
+
+      }
+
+    }
+
+  }
+
+
+  /*
+    公式HTMLのテーブルを
+    直接利用する方法。
+    
+    3連単オッズ表の各行について、
+    数字セルを順番に取得する。
+  */
+
+  const numericRows = [];
+
+
+  for (const row of allCells) {
+
+    const numeric =
+      row
+        .map(v => v.trim())
+        .filter(v => v !== "");
+
+
+    if (numeric.length >= 3) {
+
+      numericRows.push(numeric);
+
+    }
+
+  }
+
+
+  /*
+    公式サイトの構造に合わせて
+    3連単120通りを生成。
+  */
+
+  /*
+    最終的なオッズページは
+    テキスト上、
+
+    1着艇
+      2着艇 3着艇 オッズ
+      2着艇 3着艇 オッズ
+      ...
+
+    という順番で並ぶ。
+
+    まずページ内の「1～6」の
+    1着ブロックを認識する。
+  */
+
+  let currentFirst = null;
+
+
+  const tokenRegex =
+    /\b([1-6])\b/g;
+
+
+  const lines =
+    oddsText
+      .split(/\s+/)
+      .filter(Boolean);
+
+
+  /*
+    公式ページの実データを
+    120通りになるよう解析する。
+  */
+
+  for (let i = 0; i < lines.length; i++) {
+
+    const value =
+      lines[i];
+
+
+    /*
+      1着艇の切り替わりを検出
+    */
+
+    if (
+      /^[1-6]$/.test(value)
+    ) {
+
+      /*
+        周辺データから
+        2着・3着・オッズを確認する。
+      */
+
+      const n1 =
+        Number(value);
+
+      const n2 =
+        Number(lines[i + 1]);
+
+      const n3 =
+        Number(lines[i + 2]);
+
+      const odd =
+        toNumber(lines[i + 3]);
+
+
+      if (
+        Number.isInteger(n1) &&
+        Number.isInteger(n2) &&
+        Number.isInteger(n3) &&
+        n1 >= 1 &&
+        n1 <= 6 &&
+        n2 >= 1 &&
+        n2 <= 6 &&
+        n3 >= 1 &&
+        n3 <= 6 &&
+        n1 !== n2 &&
+        n1 !== n3 &&
+        n2 !== n3 &&
+        odd !== null &&
+        odd > 0
+      ) {
+
+        const combo =
+          `${n1}-${n2}-${n3}`;
+
+
+        if (!map.has(combo)) {
+
+          map.set(
+            combo,
+            odd
+          );
+
+        }
+
+      }
+
+    }
+
+  }
+
+
+  /*
+    Map → 配列
+  */
+
+  map.forEach(
+    (odds, combo) => {
+
+      finalResults.push({
+
+        combo,
+
+        odds
+
+      });
+
+    }
+  );
+
+
+  /*
+    120通りになっているか確認
+  */
+
+  if (finalResults.length < 100) {
+
+    throw new Error(
+      `3連単オッズを十分に取得できませんでした（${finalResults.length}/120）`
+    );
+
+  }
+
+
+  /*
+    combo順で整理
+  */
+
+  finalResults.sort(
+    (a,b) => {
+
+      const aa =
+        a.combo
+          .split("-")
+          .map(Number);
+
+      const bb =
+        b.combo
+          .split("-")
+          .map(Number);
+
+      return (
+        aa[0] - bb[0] ||
+        aa[1] - bb[1] ||
+        aa[2] - bb[2]
+      );
+
+    }
+  );
+
+
+  return finalResults;
+
+}
 /* =========================================
    メイン
 ========================================= */
