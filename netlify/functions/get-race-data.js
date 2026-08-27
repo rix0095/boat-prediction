@@ -978,12 +978,28 @@ export default async (req) => {
 
    const oddsHtml =
   await oddsResponse.text();
+const oddsPos =
+  oddsHtml.indexOf("3連単");
+
 console.log(
-  "ODDS_SAMPLE",
+  "===== ODDS POSITION ====="
+);
+
+console.log(
+  "position:",
+  oddsPos
+);
+
+console.log(
+  "after 3連単:",
   oddsHtml.substring(
-    oddsHtml.indexOf("3連単") - 500,
-    oddsHtml.indexOf("3連単") + 3000
+    oddsPos,
+    oddsPos + 15000
   )
+);
+
+console.log(
+  "===== END ODDS POSITION ====="
 );
 trifectaOdds =
   parseTrifectaOdds(
