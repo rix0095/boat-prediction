@@ -978,7 +978,13 @@ export default async (req) => {
 
    const oddsHtml =
   await oddsResponse.text();
-
+console.log(
+  "ODDS_SAMPLE",
+  oddsHtml.substring(
+    oddsHtml.indexOf("3連単") - 500,
+    oddsHtml.indexOf("3連単") + 3000
+  )
+);
 trifectaOdds =
   parseTrifectaOdds(
     oddsHtml
