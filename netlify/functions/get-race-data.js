@@ -1,32 +1,31 @@
 // Netlify Function
-// BOAT RACE公式
-// 出走表 + 直前情報を取得
+// BOAT RACE公式 出走表＋直前情報からデータ取得
 
 const VENUE_CODES = {
-  桐生:"01",
-  戸田:"02",
-  江戸川:"03",
-  平和島:"04",
-  多摩川:"05",
-  浜名湖:"06",
-  蒲郡:"07",
-  常滑:"08",
-  津:"09",
-  三国:"10",
-  びわこ:"11",
-  住之江:"12",
-  尼崎:"13",
-  鳴門:"14",
-  丸亀:"15",
-  児島:"16",
-  宮島:"17",
-  徳山:"18",
-  下関:"19",
-  若松:"20",
-  芦屋:"21",
-  福岡:"22",
-  唐津:"23",
-  大村:"24"
+  桐生: "01",
+  戸田: "02",
+  江戸川: "03",
+  平和島: "04",
+  多摩川: "05",
+  浜名湖: "06",
+  蒲郡: "07",
+  常滑: "08",
+  津: "09",
+  三国: "10",
+  びわこ: "11",
+  住之江: "12",
+  尼崎: "13",
+  鳴門: "14",
+  丸亀: "15",
+  児島: "16",
+  宮島: "17",
+  徳山: "18",
+  下関: "19",
+  若松: "20",
+  芦屋: "21",
+  福岡: "22",
+  唐津: "23",
+  大村: "24"
 };
 
 
@@ -34,51 +33,51 @@ const VENUE_CODES = {
    HTML → テキスト
 ========================================= */
 
-function htmlToText(html){
+function htmlToText(html) {
 
   return String(html || "")
-    .replace(/<script[\s\S]*?<\/script>/gi," ")
-    .replace(/<style[\s\S]*?<\/style>/gi," ")
-    .replace(/<br\s*\/?>/gi," ")
-    .replace(/<\/td>/gi," ")
-    .replace(/<\/th>/gi," ")
-    .replace(/<\/tr>/gi," ")
-    .replace(/<[^>]+>/g," ")
-    .replace(/&nbsp;/gi," ")
-    .replace(/&amp;/gi,"&")
-    .replace(/&quot;/gi,'"')
-    .replace(/&#39;/gi,"'")
-    .replace(/&#x27;/gi,"'")
-    .replace(/&lt;/gi,"<")
-    .replace(/&gt;/gi,">")
-    .replace(/\s+/g," ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/td>/gi, " ")
+    .replace(/<\/th>/gi, " ")
+    .replace(/<\/tr>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#x27;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
     .trim();
 
 }
 
 
-function cleanName(value){
+function cleanName(value) {
 
   return String(value || "")
-    .replace(/\s+/g," ")
+    .replace(/\s+/g, " ")
     .trim();
 
 }
 
 
-function toNumber(value){
+function toNumber(value) {
 
-  if(
+  if (
     value === undefined ||
     value === null ||
     value === ""
-  ){
+  ) {
     return null;
   }
 
   const n = Number(
     String(value)
-      .replace(/,/g,"")
+      .replace(/,/g, "")
       .trim()
   );
 
@@ -88,10 +87,11 @@ function toNumber(value){
 
 
 /* =========================================
-   6艇基本データ
+   出走表
+   6艇の基本データ
 ========================================= */
 
-function parseRacers(html){
+function parseRacers(html) {
 
   const text = htmlToText(html);
 
@@ -102,27 +102,39 @@ function parseRacers(html){
 
   const boats = [];
 
-  for(let i=0;i<Math.min(6,matches.length);i++){
+  for (
+    let i = 0;
+    i < Math.min(6, matches.length);
+    i++
+  ) {
 
     const m = matches[i];
 
-    const registration = Number(m[1]);
-    const className = m[2];
-    const name = cleanName(m[3]);
+    const registration =
+      Number(m[1]);
 
-    const start = m.index + m[0].length;
+    const className =
+      m[2];
+
+    const name =
+      cleanName(m[3]);
+
+    const start =
+      m.index + m[0].length;
 
     const end =
       i + 1 < matches.length
-        ? matches[i+1].index
+        ? matches[i + 1].index
         : text.length;
 
-    const block = text.slice(start,end);
+    const block =
+      text.slice(start, end);
 
     const statRegex =
       /F\s*(\d+)\s+L\s*(\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+\.\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)/;
 
-    const stats = block.match(statRegex);
+    const stats =
+      block.match(statRegex);
 
     let averageST = null;
     let nationalWinRate = null;
@@ -132,42 +144,66 @@ function parseRacers(html){
     let boatNo = null;
     let boat2Rate = null;
 
-    if(stats){
+    if (stats) {
 
-      averageST = toNumber(stats[3]);
-      nationalWinRate = toNumber(stats[4]);
-      localWinRate = toNumber(stats[7]);
+      averageST =
+        toNumber(stats[3]);
 
-      motorNo = toNumber(stats[10]);
-      motor2Rate = toNumber(stats[11]);
+      nationalWinRate =
+        toNumber(stats[4]);
 
-      boatNo = toNumber(stats[13]);
-      boat2Rate = toNumber(stats[14]);
+      localWinRate =
+        toNumber(stats[7]);
+
+      motorNo =
+        toNumber(stats[10]);
+
+      motor2Rate =
+        toNumber(stats[11]);
+
+      boatNo =
+        toNumber(stats[13]);
+
+      boat2Rate =
+        toNumber(stats[14]);
 
     }
 
     boats.push({
 
-      boat:i+1,
+      boat: i + 1,
+
       registration,
+
       name,
-      class:className,
+
+      class: className,
 
       averageST,
+
       nationalWinRate,
+
       localWinRate,
 
       motorNo,
+
       motor2Rate,
 
       boatNo,
-      boat2Rate
+
+      boat2Rate,
+
+      exhibitionTime: null,
+
+      tilt: null,
+
+      startExhibition: null
 
     });
 
   }
 
-  if(boats.length !== 6){
+  if (boats.length !== 6) {
 
     throw new Error(
       `選手データを6艇取得できませんでした（${boats.length}/6）`
@@ -181,59 +217,98 @@ function parseRacers(html){
 
 
 /* =========================================
-   直前情報解析
+   直前情報
 ========================================= */
 
-function parseBeforeInfo(html){
+function parseBeforeInfo(html) {
 
   const text = htmlToText(html);
 
   const result = {
 
-    weather:null,
-    temperature:null,
-    waterTemperature:null,
-    windDirection:null,
-    windSpeed:null,
-    wave:null,
+    weather: null,
 
-    boats:[]
+    temperature: null,
+
+    waterTemperature: null,
+
+    windDirection: null,
+
+    windSpeed: null,
+
+    wave: null,
+
+    boats: []
 
   };
 
 
   /* =========================================
-     気象
+     気温
   ========================================= */
 
   const tempMatch =
-    text.match(/気温\s*([+-]?\d+(?:\.\d+)?)℃/);
+    text.match(
+      /気温\s*([+-]?\d+(?:\.\d+)?)℃/
+    );
 
-  const waterMatch =
-    text.match(/水温\s*([+-]?\d+(?:\.\d+)?)℃/);
+  if (tempMatch) {
 
-  const windMatch =
-    text.match(/風速\s*(\d+(?:\.\d+)?)m/);
-
-  const waveMatch =
-    text.match(/波高\s*(\d+(?:\.\d+)?)cm/);
-
-
-  if(tempMatch)
     result.temperature =
       toNumber(tempMatch[1]);
 
-  if(waterMatch)
+  }
+
+
+  /* =========================================
+     水温
+  ========================================= */
+
+  const waterMatch =
+    text.match(
+      /水温\s*([+-]?\d+(?:\.\d+)?)℃/
+    );
+
+  if (waterMatch) {
+
     result.waterTemperature =
       toNumber(waterMatch[1]);
 
-  if(windMatch)
+  }
+
+
+  /* =========================================
+     風速
+  ========================================= */
+
+  const windMatch =
+    text.match(
+      /風速\s*(\d+(?:\.\d+)?)m/
+    );
+
+  if (windMatch) {
+
     result.windSpeed =
       toNumber(windMatch[1]);
 
-  if(waveMatch)
+  }
+
+
+  /* =========================================
+     波高
+  ========================================= */
+
+  const waveMatch =
+    text.match(
+      /波高\s*(\d+(?:\.\d+)?)cm/
+    );
+
+  if (waveMatch) {
+
     result.wave =
       toNumber(waveMatch[1]);
+
+  }
 
 
   /* =========================================
@@ -249,11 +324,12 @@ function parseBeforeInfo(html){
     "雪"
   ];
 
-  for(const word of weatherWords){
+  for (const word of weatherWords) {
 
-    if(text.includes(word)){
+    if (text.includes(word)) {
 
       result.weather = word;
+
       break;
 
     }
@@ -262,44 +338,74 @@ function parseBeforeInfo(html){
 
 
   /* =========================================
-     展示タイム
-     
-     直前情報の6艇を名前順に取得
+     風向
   ========================================= */
 
-  const timeMatches =
-    [...text.matchAll(/(\d\.\d{2})\s+(?:-?\d+(?:\.\d+)?)/g)];
+  const windDirections = [
+    "北東",
+    "東北東",
+    "東",
+    "東南東",
+    "南東",
+    "南",
+    "南西",
+    "西南西",
+    "西",
+    "西北西",
+    "北西",
+    "北",
+    "北北東",
+    "南南東",
+    "南南西",
+    "北北西"
+  ];
+
+  for (const direction of windDirections) {
+
+    if (
+      text.includes(direction)
+    ) {
+
+      result.windDirection =
+        direction;
+
+      break;
+
+    }
+
+  }
 
 
-  /*
-     公式ページでは
-     
-     選手名
-     体重
-     展示タイム
-     チルト
-     
-     の順で並ぶため、
-     選手名の出現位置から周辺を解析する。
-  */
+  /* =========================================
+     展示タイム・チルト
+  ========================================= */
 
   const racerNames =
-    [...text.matchAll(
-      /\b\d\s+([^\d]+?)\s+\d{1,2}\.\dkg\s+(\d\.\d{2})\s+([+-]?\d+(?:\.\d+)?)/g
-    )];
+    [
+      ...text.matchAll(
+        /\b(\d)\s+([^\d]+?)\s+\d{1,2}\.\dkg\s+(\d\.\d{2})\s+([+-]?\d+(?:\.\d+)?)/g
+      )
+    ];
 
 
-  for(let i=0;i<Math.min(6,racerNames.length);i++){
+  for (
+    let i = 0;
+    i < Math.min(6, racerNames.length);
+    i++
+  ) {
 
     result.boats.push({
 
-      boat:i+1,
+      boat:
+        Number(racerNames[i][1]),
 
       exhibitionTime:
-        toNumber(racerNames[i][2]),
+        toNumber(racerNames[i][3]),
 
       tilt:
-        toNumber(racerNames[i][3])
+        toNumber(racerNames[i][4]),
+
+      startExhibition: null
 
     });
 
@@ -308,9 +414,6 @@ function parseBeforeInfo(html){
 
   /* =========================================
      スタート展示
-     
-     Image
-     1.06 2.13 3.03 ...
   ========================================= */
 
   const stSection =
@@ -319,16 +422,20 @@ function parseBeforeInfo(html){
     );
 
 
-  if(stSection){
+  if (stSection) {
 
-    const stText = stSection[1];
+    const stText =
+      stSection[1];
 
     const stMatches =
-      [...stText.matchAll(
-        /(\d)\s+(F?\.\d{2})/g
-      )];
+      [
+        ...stText.matchAll(
+          /(\d)\s+(F?\.\d{2})/g
+        )
+      ];
 
-    stMatches.forEach(m=>{
+
+    stMatches.forEach(m => {
 
       const boat =
         Number(m[1]);
@@ -338,10 +445,10 @@ function parseBeforeInfo(html){
 
       const target =
         result.boats.find(
-          x=>x.boat===boat
+          x => x.boat === boat
         );
 
-      if(target){
+      if (target) {
 
         target.startExhibition =
           value;
@@ -359,15 +466,16 @@ function parseBeforeInfo(html){
 
 
 /* =========================================
-   Function本体
+   メイン
 ========================================= */
 
-export default async(req)=>{
+export default async (req) => {
 
-  try{
+  try {
 
     const url =
       new URL(req.url);
+
 
     const date =
       url.searchParams.get("date");
@@ -379,13 +487,21 @@ export default async(req)=>{
       url.searchParams.get("race");
 
 
-    if(!date || !venue || !race){
+    /* =====================================
+       入力確認
+    ===================================== */
+
+    if (
+      !date ||
+      !venue ||
+      !race
+    ) {
 
       return new Response(
 
         JSON.stringify({
 
-          success:false,
+          success: false,
 
           error:
             "開催日・開催場・Rが必要です"
@@ -394,11 +510,13 @@ export default async(req)=>{
 
         {
 
-          status:400,
+          status: 400,
 
-          headers:{
+          headers: {
+
             "Content-Type":
               "application/json; charset=utf-8"
+
           }
 
         }
@@ -408,17 +526,21 @@ export default async(req)=>{
     }
 
 
+    /* =====================================
+       開催場コード
+    ===================================== */
+
     const jcd =
       VENUE_CODES[venue];
 
 
-    if(!jcd){
+    if (!jcd) {
 
       return new Response(
 
         JSON.stringify({
 
-          success:false,
+          success: false,
 
           error:
             `開催場「${venue}」が見つかりません`
@@ -427,11 +549,13 @@ export default async(req)=>{
 
         {
 
-          status:400,
+          status: 400,
 
-          headers:{
+          headers: {
+
             "Content-Type":
               "application/json; charset=utf-8"
+
           }
 
         }
@@ -442,12 +566,12 @@ export default async(req)=>{
 
 
     const normalizedDate =
-      date.replace(/-/g,"");
+      date.replace(/-/g, "");
 
 
-    /* =========================================
+    /* =====================================
        出走表URL
-    ========================================= */
+    ===================================== */
 
     const racelistUrl =
       `https://www.boatrace.jp/owpc/pc/race/racelist` +
@@ -456,9 +580,11 @@ export default async(req)=>{
       `&rno=${race}`;
 
 
-    /* =========================================
+    /* =====================================
        直前情報URL
-    ========================================= */
+       
+       BOAT RACE公式
+    ===================================== */
 
     const beforeUrl =
       `https://www.boatrace.jp/owpc/pc/race/beforeinfo` +
@@ -485,35 +611,21 @@ export default async(req)=>{
     };
 
 
-    /* =========================================
-       2ページ同時取得
-    ========================================= */
+    /* =====================================
+       出走表取得
+    ===================================== */
 
-    const [
-      raceResponse,
-      beforeResponse
-    ] = await Promise.all([
-
-      fetch(racelistUrl,{headers}),
-
-      fetch(beforeUrl,{headers})
-
-    ]);
-
-
-    if(!raceResponse.ok){
-
-      throw new Error(
-        `出走表取得失敗 HTTP ${raceResponse.status}`
+    const raceResponse =
+      await fetch(
+        racelistUrl,
+        { headers }
       );
 
-    }
 
-
-    if(!beforeResponse.ok){
+    if (!raceResponse.ok) {
 
       throw new Error(
-        `直前情報取得失敗 HTTP ${beforeResponse.status}`
+        `公式出走表取得失敗 HTTP ${raceResponse.status}`
       );
 
     }
@@ -522,114 +634,194 @@ export default async(req)=>{
     const raceHtml =
       await raceResponse.text();
 
-    const beforeHtml =
-      await beforeResponse.text();
 
-
-    /* =========================================
-       データ解析
-    ========================================= */
+    /* =====================================
+       6艇基本データ
+    ===================================== */
 
     const boats =
       parseRacers(raceHtml);
 
-    const before =
-      parseBeforeInfo(beforeHtml);
 
+    /* =====================================
+       直前情報取得
+    ===================================== */
 
-    /* =========================================
-       6艇データに直前情報を結合
-    ========================================= */
+    let before = {
 
-    boats.forEach(boat=>{
-
-      const extra =
-        before.boats.find(
-          x=>x.boat===boat.boat
-        );
-
-      if(!extra)
-        return;
-
-
-      boat.exhibitionTime =
-        extra.exhibitionTime ?? null;
-
-      boat.tilt =
-        extra.tilt ?? null;
-
-      boat.startExhibition =
-        extra.startExhibition ?? null;
-
-    });
-
-
-    /* =========================================
-       レースデータ
-    ========================================= */
-
-    const raceData = {
-
-      venue,
-
-      date:normalizedDate,
-
-      race:Number(race),
-
-      weather:
-        before.weather,
-
-      temperature:
-        before.temperature,
-
-      waterTemperature:
-        before.waterTemperature,
-
-      windDirection:
-        before.windDirection,
-
-      windSpeed:
-        before.windSpeed,
-
-      wave:
-        before.wave,
-
-      tide:null,
-
-      boats,
-
-      odds:{
-        trifecta:[]
-      }
+      weather: null,
+      temperature: null,
+      waterTemperature: null,
+      windDirection: null,
+      windSpeed: null,
+      wave: null,
+      boats: []
 
     };
 
+
+    try {
+
+      const beforeResponse =
+        await fetch(
+          beforeUrl,
+          { headers }
+        );
+
+
+      if (beforeResponse.ok) {
+
+        const beforeHtml =
+          await beforeResponse.text();
+
+
+        before =
+          parseBeforeInfo(
+            beforeHtml
+          );
+
+      }
+
+    } catch (beforeError) {
+
+      /*
+        直前情報が取れなくても
+        出走表データは返す
+      */
+
+      before = {
+
+        weather: null,
+        temperature: null,
+        waterTemperature: null,
+        windDirection: null,
+        windSpeed: null,
+        wave: null,
+        boats: []
+
+      };
+
+    }
+
+
+    /* =====================================
+       直前情報を6艇データへ統合
+    ===================================== */
+
+    before.boats.forEach(
+      beforeBoat => {
+
+        const target =
+          boats.find(
+            boat =>
+              boat.boat === beforeBoat.boat
+          );
+
+
+        if (!target) {
+          return;
+        }
+
+
+        if (
+          beforeBoat.exhibitionTime !== null
+        ) {
+
+          target.exhibitionTime =
+            beforeBoat.exhibitionTime;
+
+        }
+
+
+        if (
+          beforeBoat.tilt !== null
+        ) {
+
+          target.tilt =
+            beforeBoat.tilt;
+
+        }
+
+
+        if (
+          beforeBoat.startExhibition !== null
+        ) {
+
+          target.startExhibition =
+            beforeBoat.startExhibition;
+
+        }
+
+      }
+    );
+
+
+    /* =====================================
+       最終レスポンス
+    ===================================== */
 
     return new Response(
 
       JSON.stringify({
 
-        success:true,
+        success: true,
 
-        source:"BOAT RACE Official",
+        source:
+          "BOAT RACE Official",
 
-        race:raceData,
+        race: {
 
-        url:{
+          venue,
 
-          racelist:racelistUrl,
+          date:
+            normalizedDate,
 
-          beforeinfo:beforeUrl
+          race:
+            Number(race),
 
-        }
+          weather:
+            before.weather,
 
-      },null,2),
+          temperature:
+            before.temperature,
+
+          waterTemperature:
+            before.waterTemperature,
+
+          windDirection:
+            before.windDirection,
+
+          windSpeed:
+            before.windSpeed,
+
+          wave:
+            before.wave,
+
+          tide: null,
+
+          boats,
+
+          odds: {
+
+            trifecta: []
+
+          }
+
+        },
+
+        url:
+          racelistUrl,
+
+        beforeInfoUrl:
+          beforeUrl
+
+      }, null, 2),
 
       {
 
-        status:200,
+        status: 200,
 
-        headers:{
+        headers: {
 
           "Content-Type":
             "application/json; charset=utf-8",
@@ -644,25 +836,25 @@ export default async(req)=>{
     );
 
 
-  }catch(error){
+  } catch (error) {
 
     return new Response(
 
       JSON.stringify({
 
-        success:false,
+        success: false,
 
         error:
-          error?.message ||
+          error.message ||
           "Unknown error"
 
       }),
 
       {
 
-        status:500,
+        status: 500,
 
-        headers:{
+        headers: {
 
           "Content-Type":
             "application/json; charset=utf-8"
