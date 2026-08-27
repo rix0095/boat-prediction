@@ -100,7 +100,14 @@ th{background:#f8fafc;position:sticky;top:0}
 <section class="card">
 
 <h2>① レース基本情報</h2>
+<div class="grid2">
+<input id="raceDate" type="date">
+<button class="blueBtn" onclick="fetchRaceData()">
+公式データを取得
+</button>
+</div>
 
+<div id="fetchStatus" class="status hide"></div>
 <div class="grid2">
 <input id="venue" placeholder="開催場">
 <input id="race" type="number" min="1" max="12" placeholder="R">
@@ -1508,7 +1515,82 @@ function loadDraft(){
  : "保存データはありません。";
 
 }
+async function fetchRaceData(){
 
+  const date = $("raceDate").value;
+  const venue = text("venue");
+  const race = text("race");
+
+  const status = $("fetchStatus");
+
+  if(!date || !venue || !race){
+    status.className = "status red";
+    status.textContent = "開催日・開催場・Rを入力してください。";
+    return;
+  }
+
+  status.className = "status blue";
+  status.textContent = "公式データを取得しています…";
+
+  try{
+
+    const url =
+      `/.netlify/functions/get-race-data` +
+      `?date=${encodeURIComponent(date)}` +
+      `&venue=${encodeURIComponent(venue)}` +
+      `&race=${encodeURIComponent(race)}`;
+
+    const response = await fetch(url);
+
+    const data = await response.json();
+
+    if(!response.ok || !data.success){
+      throw new Error(data.error || "データ取得に失敗しました");
+    }
+
+    data.boats.forEach(boat => {
+
+      const i = boat.boat;
+
+      if(boat.name)
+        $("name"+i).value = boat.name;
+
+      if(boat.class)
+        $("class"+i).value = boat.class;
+
+      if(boat.nationalWinRate !== null)
+        $("nat"+i).value = boat.nationalWinRate;
+
+      if(boat.localWinRate !== null)
+        $("local"+i).value = boat.localWinRate;
+
+      if(boat.averageST !== null)
+        $("st"+i).value = boat.averageST;
+
+      if(boat.motorNo !== null)
+        $("motorNo"+i).value = boat.motorNo;
+
+      if(boat.motor2Rate !== null)
+        $("motor2_"+i).value = boat.motor2Rate;
+
+      if(boat.boat2Rate !== null)
+        $("boat2_"+i).value = boat.boat2Rate;
+
+    });
+
+    status.className = "status green";
+    status.textContent =
+      "公式データの取得が完了しました。6艇データを確認してください。";
+
+  }catch(error){
+
+    status.className = "status red";
+    status.textContent =
+      "取得エラー：" + error.message;
+
+  }
+
+}
 </script>
 
 </body>
