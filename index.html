@@ -880,69 +880,187 @@ function generateRaceFlow(evals){
   総合スコアから順位別重みを作り、
   逐次選択方式で全順位が100%になるよう計算。
 */
+ /* =========================================
+   着順確率 Ver.2
+   総合評価＋艇番＋ST＋モーター＋展示を反映
+========================================= */
 
 function calculateFinishProbabilities(evals){
 
- const weights={};
+  const result={};
 
- evals.forEach(e=>{
-   weights[e.boat]=Math.exp(e.total*4);
- });
+  boatNumbers.forEach(i=>{
+    result[i]=Array(6).fill(0);
+  });
 
- const result={};
+  /*
+    基本ウェイト
 
- boatNumbers.forEach(i=>{
-   result[i]=Array(6).fill(0);
- });
+    総合評価だけではなく、
+    ・艇番
+    ・ST
+    ・モーター
+    ・展示
+    を追加補正する。
+  */
 
- /*
-   Monte Carloで順位分布を近似。
-   ブラウザで十分高速な回数に設定。
- */
+  const weights={};
 
- const iterations=30000;
+  evals.forEach(e=>{
 
- for(let n=0;n<iterations;n++){
+    const boat=e.boat;
 
-   const remaining=[...boatNumbers];
-   const ranking=[];
+    const st=num("st"+boat);
+    const motor=num("motor2_"+boat);
+    const exhibition=e.exhibition;
 
-   while(remaining.length){
+    /*
+      総合評価
+    */
+    let weight=e.total;
 
-     let totalWeight=0;
+    /*
+      ST補正
+      速いほど有利
+    */
+    const stScore=
+      clamp((0.20-st)/0.12,0,1);
 
-     remaining.forEach(b=>{
-       totalWeight+=weights[b];
-     });
+    weight += stScore*0.12;
 
-     let r=Math.random()*totalWeight;
-     let selected=remaining[remaining.length-1];
+    /*
+      モーター補正
+    */
+    const motorScore=
+      clamp(motor/60,0,1);
 
-     for(const b of remaining){
-       r-=weights[b];
+    weight += motorScore*0.08;
 
-       if(r<=0){
-         selected=b;
-         break;
-       }
-     }
+    /*
+      展示補正
+    */
+    weight += exhibition*0.08;
 
-     ranking.push(selected);
-     remaining.splice(remaining.indexOf(selected),1);
-   }
+    /*
+      1号艇はイン有利を考慮
+      ※過度に固定しない
+    */
+    if(boat===1){
+      weight += 0.08;
+    }
 
-   ranking.forEach((boat,rank)=>{
-     result[boat][rank]+=1;
-   });
+    /*
+      2～4号艇は攻め・差し候補
+    */
+    if(boat>=2 && boat<=4){
+      weight += 0.025;
+    }
 
- }
+    /*
+      5・6号艇は外枠補正
+    */
+    if(boat>=5){
+      weight -= 0.025;
+    }
 
- boatNumbers.forEach(i=>{
-   result[i]=result[i].map(v=>v/iterations);
- });
+    /*
+      負の値を防止
+    */
+    weights[boat]=Math.exp(weight*7);
 
- return result;
+  });
+
+
+  /*
+    Monte Carlo
+    順位を30,000回シミュレーション
+  */
+
+  const iterations=30000;
+
+  for(let n=0;n<iterations;n++){
+
+    const remaining=[...boatNumbers];
+    const ranking=[];
+
+    while(remaining.length){
+
+      let totalWeight=0;
+
+      remaining.forEach(b=>{
+        totalWeight+=weights[b];
+      });
+
+      let r=Math.random()*totalWeight;
+      let selected=remaining[remaining.length-1];
+
+      for(const b of remaining){
+
+        r-=weights[b];
+
+        if(r<=0){
+          selected=b;
+          break;
+        }
+
+      }
+
+      ranking.push(selected);
+
+      remaining.splice(
+        remaining.indexOf(selected),
+        1
+      );
+
+    }
+
+    ranking.forEach((boat,rank)=>{
+      result[boat][rank]++;
+    });
+
+  }
+
+
+  /*
+    確率化
+  */
+
+  boatNumbers.forEach(i=>{
+
+    result[i]=result[i].map(
+      v=>v/iterations
+    );
+
+  });
+
+
+  /*
+    各着順の合計が100%になるよう
+    最終正規化
+  */
+
+  for(let rank=0;rank<6;rank++){
+
+    let total=0;
+
+    boatNumbers.forEach(i=>{
+      total+=result[i][rank];
+    });
+
+    if(total>0){
+
+      boatNumbers.forEach(i=>{
+        result[i][rank]/=total;
+      });
+
+    }
+
+  }
+
+  return result;
 }
+
+
 
 
 /* =========================================
