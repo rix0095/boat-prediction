@@ -392,7 +392,42 @@ function parseBeforeInfo(html) {
 ========================================= */
 
 function parseTrifectaOdds(html) {
+console.log("===== ODDS TABLE DEBUG =====");
 
+const debugTables = [
+  ...String(html || "").matchAll(
+    /<table[^>]*>([\s\S]*?)<\/table>/gi
+  )
+];
+
+console.log("table count:", debugTables.length);
+
+debugTables.forEach((table, index) => {
+
+  const tableText =
+    htmlToText(table[1]);
+
+  if (
+    tableText.includes("3連単") ||
+    tableText.includes("オッズ")
+  ) {
+
+    console.log(
+      "TARGET TABLE:",
+      index,
+      "length:",
+      table[1].length
+    );
+
+    console.log(
+      tableText.substring(0, 3000)
+    );
+
+  }
+
+});
+
+console.log("============================");
   const odds = {};
 
   // 3連単120通りを最初に作る
