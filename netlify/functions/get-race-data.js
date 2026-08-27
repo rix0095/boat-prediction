@@ -1564,7 +1564,15 @@ export default async (req) => {
       `?hd=${normalizedDate}` +
       `&jcd=${jcd}` +
       `&rno=${race}`;
+/* =====================================
+   3連単オッズURL
+===================================== */
 
+const oddsUrl =
+  `https://www.boatrace.jp/owpc/pc/race/odds3t` +
+  `?hd=${normalizedDate}` +
+  `&jcd=${jcd}` +
+  `&rno=${race}`;
 
     const oddsUrl =
       `https://www.boatrace.jp/owpc/pc/race/odds3t` +
@@ -1619,7 +1627,48 @@ export default async (req) => {
       parseRacers(
         raceHtml
       );
+/* =====================================
+   3連単オッズ取得
+===================================== */
 
+let trifectaOdds = [];
+
+try {
+
+  const oddsResponse =
+    await fetch(
+      oddsUrl,
+      { headers }
+    );
+
+
+  if (!oddsResponse.ok) {
+
+    throw new Error(
+      `公式オッズ取得失敗 HTTP ${oddsResponse.status}`
+    );
+
+  }
+
+
+  const oddsHtml =
+    await oddsResponse.text();
+
+
+  trifectaOdds =
+    parseTrifectaOdds(oddsHtml);
+
+
+} catch (oddsError) {
+
+  /*
+    オッズだけ取得できない場合でも
+    出走表・直前情報は返す
+  */
+
+  trifectaOdds = [];
+
+}
 
     /* =====================================
        直前情報
@@ -1841,7 +1890,8 @@ export default async (req) => {
         beforeInfoUrl:
           beforeUrl,
 
-        oddsUrl
+        oddsUrl:
+  oddsUrl
 
       }, null, 2),
 
