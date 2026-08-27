@@ -4,142 +4,1512 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#111827">
-<title>競艇予想システム Ver.0.3</title>
+<title>競艇予想システム Ver.0.4</title>
+
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif}
-header{background:#111827;color:#fff;padding:15px;font-weight:700;position:sticky;top:0;z-index:3}
-main{max-width:1000px;margin:auto;padding:10px}.card{background:#fff;border-radius:14px;padding:14px;margin:10px 0;box-shadow:0 1px 5px #0001}
-h2{font-size:19px;margin:3px 0 12px}h3{font-size:16px;margin:15px 0 8px}.muted{font-size:12px;color:#64748b}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-input,select,button{width:100%;padding:10px;border-radius:9px;font-size:14px}input,select{border:1px solid #cbd5e1;background:#fff}button{border:0;background:#111827;color:#fff;font-weight:700;margin-top:8px}.secondary{background:#475569}
-.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:12px;min-width:760px}th,td{padding:7px 5px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:middle}
-.badge{display:inline-block;padding:3px 7px;border-radius:99px;background:#e2e8f0;font-size:11px}.status{padding:10px;border-radius:9px;background:#fef3c7;margin-top:9px}.blue{background:#dbeafe}.green{background:#dcfce7}.red{background:#fee2e2}
-.hide{display:none}.score{font-weight:700;font-size:16px}
+*{box-sizing:border-box}
+body{
+ margin:0;background:#f3f4f6;color:#111827;
+ font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif
+}
+header{
+ background:#111827;color:#fff;padding:15px;font-weight:700;
+ position:sticky;top:0;z-index:3
+}
+main{max-width:1100px;margin:auto;padding:10px}
+.card{
+ background:#fff;border-radius:14px;padding:14px;margin:10px 0;
+ box-shadow:0 1px 5px #0001
+}
+h2{font-size:19px;margin:3px 0 12px}
+h3{font-size:16px;margin:15px 0 8px}
+.muted{font-size:12px;color:#64748b}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+
+input,select,button{
+ width:100%;padding:10px;border-radius:9px;font-size:14px
+}
+input,select{
+ border:1px solid #cbd5e1;background:#fff
+}
+button{
+ border:0;background:#111827;color:#fff;font-weight:700;
+ margin-top:8px;cursor:pointer
+}
+button.secondary{background:#475569}
+button.greenBtn{background:#166534}
+button.blueBtn{background:#1d4ed8}
+button.redBtn{background:#991b1b}
+
+.tablewrap{overflow-x:auto}
+table{
+ width:100%;border-collapse:collapse;font-size:12px;min-width:800px
+}
+th,td{
+ padding:7px 5px;border-bottom:1px solid #e5e7eb;
+ text-align:left;vertical-align:middle
+}
+th{background:#f8fafc;position:sticky;top:0}
+.badge{
+ display:inline-block;padding:3px 7px;border-radius:99px;
+ background:#e2e8f0;font-size:11px
+}
+.status{
+ padding:10px;border-radius:9px;background:#fef3c7;margin-top:9px
+}
+.blue{background:#dbeafe}
+.green{background:#dcfce7}
+.red{background:#fee2e2}
+.purple{background:#f3e8ff}
+.hide{display:none}
+.score{font-weight:700;font-size:16px}
+.big{
+ font-size:24px;font-weight:800
+}
+.rank1{background:#fef3c7}
+.rank2{background:#f1f5f9}
+.rank3{background:#ffedd5}
+.good{color:#166534;font-weight:700}
+.bad{color:#991b1b;font-weight:700}
+.small{font-size:11px}
+.highlight{font-weight:800}
+.buy{
+ font-size:16px;font-weight:800;letter-spacing:1px
+}
+.flex{
+ display:flex;gap:8px;align-items:center;flex-wrap:wrap
+}
+.flex button{width:auto;padding:10px 14px}
 </style>
 </head>
+
 <body>
-<header>競艇予想・検証システム Ver.0.3　— データ管理土台</header>
+
+<header>
+競艇予想・検証システム Ver.0.4　— 予想計算エンジン
+</header>
+
 <main>
 
+<!-- ============================= -->
+<!-- ① 基本情報 -->
+<!-- ============================= -->
+
 <section class="card">
+
 <h2>① レース基本情報</h2>
+
 <div class="grid2">
 <input id="venue" placeholder="開催場">
 <input id="race" type="number" min="1" max="12" placeholder="R">
 </div>
+
 <div class="grid3">
-<input id="wind" placeholder="風速 m">
-<input id="wave" placeholder="波高 cm">
-<input id="water" placeholder="水温 ℃">
+<input id="wind" type="number" step="0.1" placeholder="風速 m">
+<input id="wave" type="number" step="1" placeholder="波高 cm">
+<input id="water" type="number" step="0.1" placeholder="水温 ℃">
 </div>
+
 <div class="grid2">
 <input id="tide" placeholder="潮・干満など">
-<input id="tilt" placeholder="チルト">
+<input id="tilt" type="number" step="0.5" placeholder="チルト">
 </div>
+
 <div class="status blue">
-公式の出走表には全国・当地成績、平均ST、モーター・ボートの2連対率/3連対率などが掲載されます。モーターは使用選手履歴を追える場もあります。citeturn0search4turn0search0
+この画面では、入力したレース情報と6艇データを使って予想計算を行います。
 </div>
+
 </section>
 
+
+<!-- ============================= -->
+<!-- ② 6艇データ -->
+<!-- ============================= -->
+
 <section class="card">
+
 <h2>② 6艇データ</h2>
-<p class="muted">ここでは「何を記録するか」を固定します。数値の重みはまだ決めません。</p>
+
+<p class="muted">
+数値は現在の予想エンジンに入力されます。
+</p>
+
 <div class="tablewrap">
+
 <table>
-<thead><tr>
-<th>艇</th><th>選手</th><th>級別</th><th>全国勝率</th><th>当地勝率</th><th>平均ST</th><th>モーターNo</th><th>モーター2連率</th><th>ボート2連率</th>
-</tr></thead>
+
+<thead>
+<tr>
+<th>艇</th>
+<th>選手</th>
+<th>級別</th>
+<th>全国勝率</th>
+<th>当地勝率</th>
+<th>平均ST</th>
+<th>モーターNo</th>
+<th>モーター2連率</th>
+<th>ボート2連率</th>
+</tr>
+</thead>
+
 <tbody id="boats"></tbody>
+
 </table>
+
 </div>
+
 </section>
 
+
+<!-- ============================= -->
+<!-- ③ モーター・展示 -->
+<!-- ============================= -->
+
 <section class="card">
-<h2>③ モーター履歴・整備情報</h2>
-<p class="muted">「モーターが強い」だけで終わらせず、誰が使っていたか・前節からどう変化したかを残すための欄です。公式系モーターデータでも使用選手履歴を確認できる例があります。citeturn0search0turn0search2</p>
+
+<h2>③ モーター履歴・整備・展示</h2>
+
 <div class="tablewrap">
+
 <table>
-<thead><tr>
-<th>艇</th><th>前節使用者</th><th>前々節使用者</th><th>前節成績</th><th>整備内容</th><th>中間整備</th><th>前検タイム</th><th>出足</th><th>伸び</th><th>回り足</th>
-</tr></thead>
+
+<thead>
+<tr>
+<th>艇</th>
+<th>前節使用者</th>
+<th>前々節使用者</th>
+<th>前節成績</th>
+<th>整備内容</th>
+<th>中間整備</th>
+<th>前検タイム</th>
+<th>出足</th>
+<th>伸び</th>
+<th>回り足</th>
+</tr>
+</thead>
+
 <tbody id="motor"></tbody>
+
 </table>
+
 </div>
-<button onclick="saveDraft()">入力内容を保存</button>
-<button class="secondary" onclick="loadDraft()">保存内容を読み込み</button>
-<div id="saveMsg" class="status hide"></div>
+
 </section>
 
+
+<!-- ============================= -->
+<!-- ④ データ品質 -->
+<!-- ============================= -->
+
 <section class="card">
+
 <h2>④ データ品質チェック</h2>
-<div id="quality" class="status">まだチェックしていません。</div>
-<button onclick="qualityCheck()">入力漏れを確認</button>
+
+<div id="quality" class="status">
+まだチェックしていません。
+</div>
+
+<button onclick="qualityCheck()">
+入力漏れを確認
+</button>
+
 </section>
 
+
+<!-- ============================= -->
+<!-- ⑤ 予想計算 -->
+<!-- ============================= -->
+
 <section class="card">
-<h2>⑤ 次の予想計算へ渡すデータ</h2>
-<p class="muted">ここではまだ勝率を決めません。次のVer.で「選手・モーター・環境・展示」を正規化して、全周展開モデルへ渡します。</p>
-<div class="grid3">
-<div class="status">選手要素<br><b id="qc1">0</b>項目</div>
-<div class="status">モーター要素<br><b id="qc2">0</b>項目</div>
-<div class="status">環境要素<br><b id="qc3">0</b>項目</div>
-</div>
+
+<h2>⑤ 予想計算エンジン</h2>
+
+<p class="muted">
+入力データを正規化し、選手・モーター・環境・スタート・展示を評価して
+全周展開をシミュレーションします。
+</p>
+
+<button class="blueBtn" onclick="runPrediction()">
+予想計算を実行
+</button>
+
+<div id="calcStatus" class="status hide"></div>
+
 </section>
+
+
+<!-- ============================= -->
+<!-- ⑥ 総合評価 -->
+<!-- ============================= -->
+
+<section id="evaluationSection" class="card hide">
+
+<h2>⑥ 6艇総合評価</h2>
+
+<div class="tablewrap">
+
+<table>
+
+<thead>
+<tr>
+<th>順位</th>
+<th>艇</th>
+<th>選手</th>
+<th>選手評価</th>
+<th>モーター評価</th>
+<th>環境評価</th>
+<th>スタート評価</th>
+<th>展示評価</th>
+<th>総合スコア</th>
+</tr>
+</thead>
+
+<tbody id="evaluation"></tbody>
+
+</table>
+
+</div>
+
+</section>
+
+
+<!-- ============================= -->
+<!-- ⑦ 全周展開 -->
+<!-- ============================= -->
+
+<section id="raceFlowSection" class="card hide">
+
+<h2>⑦ 全周展開予測</h2>
+
+<div id="raceFlow"></div>
+
+</section>
+
+
+<!-- ============================= -->
+<!-- ⑧ 着順確率 -->
+<!-- ============================= -->
+
+<section id="probabilitySection" class="card hide">
+
+<h2>⑧ 6艇の着順確率</h2>
+
+<p class="muted">
+各艇について、1着～6着になる確率を表示します。
+</p>
+
+<div class="tablewrap">
+
+<table>
+
+<thead>
+<tr>
+<th>艇</th>
+<th>選手</th>
+<th>1着</th>
+<th>2着</th>
+<th>3着</th>
+<th>4着</th>
+<th>5着</th>
+<th>6着</th>
+</tr>
+</thead>
+
+<tbody id="probabilities"></tbody>
+
+</table>
+
+</div>
+
+</section>
+
+
+<!-- ============================= -->
+<!-- ⑨ 3連単120通り -->
+<!-- ============================= -->
+
+<section id="trifectaSection" class="card hide">
+
+<h2>⑨ 3連単120通り</h2>
+
+<p class="muted">
+6艇の順位分布から3連単120通りの確率を生成します。
+</p>
+
+<div class="grid3">
+
+<input id="minProbability" type="number" step="0.01"
+placeholder="最低的中確率 %">
+
+<input id="defaultOdds" type="number" step="0.1"
+placeholder="オッズ未入力時の値">
+
+<select id="sortMode">
+<option value="prob">的中確率順</option>
+<option value="ev">期待回収率順</option>
+<option value="profit">期待収支順</option>
+</select>
+
+</div>
+
+<div class="tablewrap">
+
+<table>
+
+<thead>
+<tr>
+<th>順位</th>
+<th>買い目</th>
+<th>的中確率</th>
+<th>オッズ</th>
+<th>期待払戻</th>
+<th>期待収支</th>
+<th>期待回収率</th>
+<th>判定</th>
+</tr>
+</thead>
+
+<tbody id="trifecta"></tbody>
+
+</table>
+
+</div>
+
+</section>
+
+
+<!-- ============================= -->
+<!-- ⑩ オッズ入力 -->
+<!-- ============================= -->
+
+<section id="oddsSection" class="card hide">
+
+<h2>⑩ オッズ入力</h2>
+
+<p class="muted">
+必要な買い目だけオッズを入力できます。
+1点100円を基準に期待値を計算します。
+</p>
+
+<div class="tablewrap">
+
+<table>
+
+<thead>
+<tr>
+<th>買い目</th>
+<th>的中確率</th>
+<th>オッズ</th>
+<th>期待払戻</th>
+<th>期待収支</th>
+<th>期待回収率</th>
+</tr>
+</thead>
+
+<tbody id="oddsTable"></tbody>
+
+</table>
+
+</div>
+
+<button class="greenBtn" onclick="recalculateEV()">
+期待値を再計算
+</button>
+
+</section>
+
+
+<!-- ============================= -->
+<!-- ⑪ 最終買い目 -->
+<!-- ============================= -->
+
+<section id="finalSection" class="card hide">
+
+<h2>⑪ 最終買い目評価</h2>
+
+<div id="finalRecommendation"></div>
+
+</section>
+
+
+<!-- ============================= -->
+<!-- ⑫ 保存 -->
+<!-- ============================= -->
+
+<section class="card">
+
+<h2>⑫ データ保存</h2>
+
+<button onclick="saveDraft()">
+入力内容を保存
+</button>
+
+<button class="secondary" onclick="loadDraft()">
+保存内容を読み込み
+</button>
+
+<div id="saveMsg" class="status hide"></div>
+
+</section>
+
 
 </main>
+
+
 <script>
-const $=id=>document.getElementById(id);
-const boats=[1,2,3,4,5,6];
-function make(){
- $("boats").innerHTML=boats.map(i=>`<tr>
-<td><b>${i}</b></td>
-<td><input id="name${i}" placeholder="選手名"></td>
-<td><input id="class${i}" placeholder="A1/B1"></td>
-<td><input id="nat${i}" type="number" step="0.01" placeholder="勝率"></td>
-<td><input id="local${i}" type="number" step="0.01" placeholder="当地"></td>
-<td><input id="st${i}" type="number" step="0.01" placeholder="ST"></td>
-<td><input id="motorNo${i}" type="number" placeholder="No"></td>
-<td><input id="motor2${i}" type="number" step="0.01" placeholder="%"></td>
-<td><input id="boat2${i}" type="number" step="0.01" placeholder="%"></td>
-</tr>`).join("");
- $("motor").innerHTML=boats.map(i=>`<tr>
-<td><b>${i}</b></td>
-<td><input id="prev${i}" placeholder="氏名"></td>
-<td><input id="prev2${i}" placeholder="氏名"></td>
-<td><input id="prevResult${i}" placeholder="例 1着2回"></td>
-<td><input id="maint${i}" placeholder="整備内容"></td>
-<td><input id="mid${i}" placeholder="有/無・内容"></td>
-<td><input id="preTime${i}" type="number" step="0.01" placeholder="秒"></td>
-<td><input id="start${i}" placeholder="弱/中/強"></td>
-<td><input id="stretch${i}" placeholder="弱/中/強"></td>
-<td><input id="turn${i}" placeholder="弱/中/強"></td>
-</tr>`).join("");
+
+const $ = id => document.getElementById(id);
+
+const boatNumbers = [1,2,3,4,5,6];
+
+let prediction = null;
+
+
+/* =========================================
+   基本ユーティリティ
+========================================= */
+
+function num(id, fallback=0){
+ const v = parseFloat($(id)?.value);
+ return Number.isFinite(v) ? v : fallback;
 }
+
+function text(id){
+ return ($(id)?.value || "").trim();
+}
+
+function clamp(v,min,max){
+ return Math.max(min,Math.min(max,v));
+}
+
+function normalize(value,min,max){
+ if(max===min)return 0.5;
+ return clamp((value-min)/(max-min),0,1);
+}
+
+function scoreToPercent(score){
+ return Math.round(score*1000)/10;
+}
+
+
+/* =========================================
+   入力欄生成
+========================================= */
+
+function make(){
+
+ $("boats").innerHTML = boatNumbers.map(i => `
+
+<tr>
+
+<td><b>${i}</b></td>
+
+<td>
+<input id="name${i}" placeholder="選手名">
+</td>
+
+<td>
+<input id="class${i}" placeholder="A1/B1">
+</td>
+
+<td>
+<input id="nat${i}" type="number" step="0.01" placeholder="勝率">
+</td>
+
+<td>
+<input id="local${i}" type="number" step="0.01" placeholder="当地">
+</td>
+
+<td>
+<input id="st${i}" type="number" step="0.01" placeholder="ST">
+</td>
+
+<td>
+<input id="motorNo${i}" type="number" placeholder="No">
+</td>
+
+<td>
+<input id="motor2_${i}" type="number" step="0.01" placeholder="%">
+</td>
+
+<td>
+<input id="boat2_${i}" type="number" step="0.01" placeholder="%">
+</td>
+
+</tr>
+
+`).join("");
+
+
+ $("motor").innerHTML = boatNumbers.map(i => `
+
+<tr>
+
+<td><b>${i}</b></td>
+
+<td>
+<input id="prev${i}" placeholder="氏名">
+</td>
+
+<td>
+<input id="prev2_${i}" placeholder="氏名">
+</td>
+
+<td>
+<input id="prevResult${i}" placeholder="例 1着2回">
+</td>
+
+<td>
+<input id="maint${i}" placeholder="整備内容">
+</td>
+
+<td>
+<input id="mid${i}" placeholder="有/無・内容">
+</td>
+
+<td>
+<input id="preTime${i}" type="number" step="0.01" placeholder="秒">
+</td>
+
+<td>
+<select id="start${i}">
+<option value="">出足</option>
+<option value="弱">弱</option>
+<option value="中">中</option>
+<option value="強">強</option>
+</select>
+</td>
+
+<td>
+<select id="stretch${i}">
+<option value="">伸び</option>
+<option value="弱">弱</option>
+<option value="中">中</option>
+<option value="強">強</option>
+</select>
+</td>
+
+<td>
+<select id="turn${i}">
+<option value="">回り足</option>
+<option value="弱">弱</option>
+<option value="中">中</option>
+<option value="強">強</option>
+</select>
+</td>
+
+</tr>
+
+`).join("");
+
+}
+
 make();
 
-const ids=()=>[...document.querySelectorAll("input,select")].map(x=>x.id).filter(Boolean);
-function saveDraft(){
- const d={};ids().forEach(id=>d[id]=$(id).value);localStorage.setItem("boat_v03_draft",JSON.stringify(d));
- $("saveMsg").classList.remove("hide");$("saveMsg").textContent="このiPhoneのブラウザに入力内容を保存しました。";
+
+/* =========================================
+   展示・整備評価
+========================================= */
+
+function threeLevelScore(v){
+
+ if(v==="強") return 1;
+ if(v==="中") return 0.5;
+ if(v==="弱") return 0;
+
+ return 0.5;
 }
-function loadDraft(){
- const d=JSON.parse(localStorage.getItem("boat_v03_draft")||"{}");
- Object.keys(d).forEach(id=>{if($(id))$(id).value=d[id]});
- $("saveMsg").classList.remove("hide");$("saveMsg").textContent=Object.keys(d).length?"保存内容を読み込みました。":"保存データはありません。";
+
+
+/* =========================================
+   選手評価
+========================================= */
+
+function calculatePlayerScore(i){
+
+ const nat = num("nat"+i);
+ const local = num("local"+i);
+ const st = num("st"+i);
+ const cls = text("class"+i).toUpperCase();
+
+ let classScore = 0.5;
+
+ if(cls==="A1") classScore=1;
+ else if(cls==="A2") classScore=0.72;
+ else if(cls==="B1") classScore=0.45;
+ else if(cls==="B2") classScore=0.25;
+
+ const natScore = clamp(nat/8,0,1);
+ const localScore = clamp(local/8,0,1);
+
+ /*
+   STは小さいほど良い。
+   0.10付近を高評価の基準とする。
+ */
+ const stScore = clamp((0.18-st)/0.10,0,1);
+
+ return (
+   classScore*0.20 +
+   natScore*0.30 +
+   localScore*0.25 +
+   stScore*0.25
+ );
 }
-function qualityCheck(){
- let missing=0;
- boats.forEach(i=>{
-   ["name","class","nat","local","st","motorNo","motor2","boat2","prev","preTime"].forEach(k=>{if(!$(k+i).value)missing++});
+
+
+/* =========================================
+   モーター評価
+========================================= */
+
+function calculateMotorScore(i){
+
+ const motor2 = num("motor2_"+i);
+ const boat2 = num("boat2_"+i);
+
+ const motorScore = clamp(motor2/60,0,1);
+ const boatScore = clamp(boat2/60,0,1);
+
+ const startScore = threeLevelScore(text("start"+i));
+ const stretchScore = threeLevelScore(text("stretch"+i));
+ const turnScore = threeLevelScore(text("turn"+i));
+
+ return (
+   motorScore*0.35 +
+   boatScore*0.15 +
+   startScore*0.20 +
+   stretchScore*0.15 +
+   turnScore*0.15
+ );
+}
+
+
+/* =========================================
+   環境評価
+========================================= */
+
+function calculateEnvironmentScore(i){
+
+ const wind = num("wind");
+ const wave = num("wave");
+ const tilt = num("tilt");
+
+ let score = 0.5;
+
+ /*
+   強風・高波では旋回力・安定性を少し重視。
+   チルトは極端な値を少しだけ評価。
+ */
+ const turn = threeLevelScore(text("turn"+i));
+
+ score += (turn-0.5)*0.20;
+
+ if(wave>=4){
+   score += (turn-0.5)*0.10;
+ }
+
+ if(wind>=5){
+   score += (turn-0.5)*0.05;
+ }
+
+ if(tilt>0){
+   score += 0.02;
+ }
+
+ return clamp(score,0,1);
+}
+
+
+/* =========================================
+   スタート評価
+========================================= */
+
+function calculateStartScore(i){
+
+ const st = num("st"+i);
+
+ let score = clamp((0.20-st)/0.12,0,1);
+
+ /*
+   1号艇はイン戦でSTの価値を少し高める。
+ */
+ if(i===1){
+   score = clamp(score+0.08,0,1);
+ }
+
+ return score;
+}
+
+
+/* =========================================
+   展示評価
+========================================= */
+
+function calculateExhibitionScore(i){
+
+ const pre = num("preTime"+i);
+
+ let score = 0.5;
+
+ /*
+   前検タイムが入っている場合、
+   6艇内の相対値で評価する。
+ */
+ const times = boatNumbers
+   .map(n=>num("preTime"+n,NaN))
+   .filter(Number.isFinite);
+
+ if(times.length>=2 && Number.isFinite(pre)){
+
+   const min=Math.min(...times);
+   const max=Math.max(...times);
+
+   score = 1-normalize(pre,min,max);
+
+ }
+
+ const a=threeLevelScore(text("start"+i));
+ const b=threeLevelScore(text("stretch"+i));
+ const c=threeLevelScore(text("turn"+i));
+
+ return clamp(
+   score*0.40+
+   a*0.20+
+   b*0.20+
+   c*0.20,
+   0,1
+ );
+}
+
+
+/* =========================================
+   総合評価
+========================================= */
+
+function calculateEvaluations(){
+
+ const arr=[];
+
+ boatNumbers.forEach(i=>{
+
+   const player=calculatePlayerScore(i);
+   const motor=calculateMotorScore(i);
+   const env=calculateEnvironmentScore(i);
+   const start=calculateStartScore(i);
+   const exhibition=calculateExhibitionScore(i);
+
+   /*
+      現Ver.の仮ウェイト
+   */
+   const total =
+     player*0.30+
+     motor*0.25+
+     env*0.10+
+     start*0.20+
+     exhibition*0.15;
+
+   arr.push({
+     boat:i,
+     name:text("name"+i)||`艇${i}`,
+     player,
+     motor,
+     environment:env,
+     start,
+     exhibition,
+     total
+   });
+
  });
- const env=["venue","race"].filter(id=>!$(id).value).length;
- missing+=env;
- $("quality").className="status "+(missing?"red":"green");
- $("quality").innerHTML=missing?`未入力・不足項目：<b>${missing}</b>。現時点では予想計算に進めない状態です。`:"必須土台項目は入力済みです。次の計算工程へ進めます。";
- $("qc1").textContent=boats.length*5;
- $("qc2").textContent=boats.length*9;
- $("qc3").textContent=6;
+
+ return arr.sort((a,b)=>b.total-a.total);
 }
+
+
+/* =========================================
+   全周展開
+========================================= */
+
+function generateRaceFlow(evals){
+
+ const sorted=[...evals].sort((a,b)=>b.total-a.total);
+
+ const first=sorted[0];
+ const second=sorted[1];
+ const third=sorted[2];
+
+ return [
+
+ `進入：${first.boat}号艇を中心に${second.boat}・${third.boat}が続く展開を想定。`,
+
+ `スタート：総合評価とST評価から${first.boat}号艇を先頭候補とし、${second.boat}号艇が攻める可能性を評価。`,
+
+ `1M：${first.boat}号艇を第一旋回先頭候補。${second.boat}・${third.boat}の差し／まくり差しを警戒。`,
+
+ `バック：${first.boat}号艇の先行を基本線とし、${second.boat}号艇と${third.boat}号艇の追走を評価。`,
+
+ `2M：旋回力・回り足評価を反映し、${third.boat}号艇の逆転余地を確認。`,
+
+ `2周目1M：先頭艇の失速がなければ${first.boat}号艇優位を継続。`,
+
+ `2周目バック：モーター・出足・伸び評価を反映して順位変動を再評価。`,
+
+ `2周目2M：回り足評価の高い艇を上位維持候補として評価。`,
+
+ `最終ホーム：${first.boat}号艇を中心に${second.boat}-${third.boat}の2・3着争いを想定。`,
+
+ `ゴール：総合評価・展開評価を統合して最終着順確率へ反映。`
+
+ ];
+}
+
+
+/* =========================================
+   着順確率
+========================================= */
+
+/*
+  単純な独立確率ではなく、
+  総合スコアから順位別重みを作り、
+  逐次選択方式で全順位が100%になるよう計算。
+*/
+
+function calculateFinishProbabilities(evals){
+
+ const weights={};
+
+ evals.forEach(e=>{
+   weights[e.boat]=Math.exp(e.total*4);
+ });
+
+ const result={};
+
+ boatNumbers.forEach(i=>{
+   result[i]=Array(6).fill(0);
+ });
+
+ /*
+   Monte Carloで順位分布を近似。
+   ブラウザで十分高速な回数に設定。
+ */
+
+ const iterations=30000;
+
+ for(let n=0;n<iterations;n++){
+
+   const remaining=[...boatNumbers];
+   const ranking=[];
+
+   while(remaining.length){
+
+     let totalWeight=0;
+
+     remaining.forEach(b=>{
+       totalWeight+=weights[b];
+     });
+
+     let r=Math.random()*totalWeight;
+     let selected=remaining[remaining.length-1];
+
+     for(const b of remaining){
+       r-=weights[b];
+
+       if(r<=0){
+         selected=b;
+         break;
+       }
+     }
+
+     ranking.push(selected);
+     remaining.splice(remaining.indexOf(selected),1);
+   }
+
+   ranking.forEach((boat,rank)=>{
+     result[boat][rank]+=1;
+   });
+
+ }
+
+ boatNumbers.forEach(i=>{
+   result[i]=result[i].map(v=>v/iterations);
+ });
+
+ return result;
+}
+
+
+/* =========================================
+   3連単120通り
+========================================= */
+
+function permutations3(){
+
+ const list=[];
+
+ boatNumbers.forEach(a=>{
+   boatNumbers.forEach(b=>{
+     boatNumbers.forEach(c=>{
+
+       if(a!==b && a!==c && b!==c){
+
+         list.push([a,b,c]);
+
+       }
+
+     });
+   });
+ });
+
+ return list;
+}
+
+
+/*
+  3連単確率
+  P(A1着) × P(B2着|A) × P(C3着|A,B)
+  を簡易的に近似。
+*/
+
+function calculateTrifecta(prob){
+
+ const list=permutations3();
+
+ return list.map(combo=>{
+
+   const [a,b,c]=combo;
+
+   let p1=prob[a][0];
+
+   let denominator2=Math.max(0.000001,1-prob[a][0]);
+
+   let p2=prob[b][1]/denominator2;
+
+   let denominator3=Math.max(
+     0.000001,
+     1-prob[a][0]-prob[b][1]
+   );
+
+   let p3=prob[c][2]/denominator3;
+
+   let p=p1*p2*p3;
+
+   return {
+     combo,
+     probability:Math.max(0,p)
+   };
+
+ });
+
+}
+
+
+/* =========================================
+   評価表表示
+========================================= */
+
+function renderEvaluation(evals){
+
+ $("evaluation").innerHTML=evals.map((e,index)=>`
+
+<tr class="${index===0?'rank1':index===1?'rank2':index===2?'rank3':''}">
+
+<td><b>${index+1}</b></td>
+<td><b>${e.boat}</b></td>
+<td>${e.name}</td>
+
+<td>${scoreToPercent(e.player)}</td>
+<td>${scoreToPercent(e.motor)}</td>
+<td>${scoreToPercent(e.environment)}</td>
+<td>${scoreToPercent(e.start)}</td>
+<td>${scoreToPercent(e.exhibition)}</td>
+
+<td class="score">
+${scoreToPercent(e.total)}
+</td>
+
+</tr>
+
+`).join("");
+
+}
+
+
+/* =========================================
+   展開表示
+========================================= */
+
+function renderRaceFlow(flow){
+
+ $("raceFlow").innerHTML=flow.map((x,i)=>`
+
+<div class="status ${i<3?'blue':''}" style="margin-bottom:6px">
+<b>${i+1}. ${x}</b>
+</div>
+
+`).join("");
+
+}
+
+
+/* =========================================
+   着順確率表示
+========================================= */
+
+function renderProbabilities(prob){
+
+ $("probabilities").innerHTML=boatNumbers.map(i=>{
+
+   const values=prob[i];
+
+   return `
+
+<tr>
+
+<td><b>${i}</b></td>
+<td>${text("name"+i)||`艇${i}`}</td>
+
+${values.map(v=>
+ `<td>${(v*100).toFixed(2)}%</td>`
+).join("")}
+
+</tr>
+
+`;
+
+ }).join("");
+
+}
+
+
+/* =========================================
+   3連単表示
+========================================= */
+
+function renderTrifecta(list){
+
+ const minP=num("minProbability",0);
+
+ const filtered=list
+   .filter(x=>x.probability*100>=minP)
+   .sort((a,b)=>b.probability-a.probability);
+
+ $("trifecta").innerHTML=filtered.map((x,index)=>`
+
+<tr>
+
+<td>${index+1}</td>
+
+<td class="buy">
+${x.combo.join("-")}
+</td>
+
+<td>
+${(x.probability*100).toFixed(2)}%
+</td>
+
+<td>
+<input
+ type="number"
+ step="0.1"
+ min="0"
+ data-odds="${x.combo.join('')}"
+ value=""
+ placeholder="オッズ">
+</td>
+
+<td class="expected-payout">
+-
+</td>
+
+<td class="expected-profit">
+-
+</td>
+
+<td class="expected-roi">
+-
+</td>
+
+<td class="judgement">
+-
+</td>
+
+</tr>
+
+`).join("");
+
+ attachOddsEvents();
+
+}
+
+
+/* =========================================
+   オッズ計算
+========================================= */
+
+function attachOddsEvents(){
+
+ document.querySelectorAll("[data-odds]").forEach(input=>{
+
+   input.addEventListener("input",()=>{
+
+     const row=input.closest("tr");
+
+     const odds=parseFloat(input.value);
+
+     const probability=
+       parseFloat(
+         row.children[2].textContent.replace("%","")
+       )/100;
+
+     if(!Number.isFinite(odds)||odds<=0){
+
+       row.querySelector(".expected-payout").textContent="-";
+       row.querySelector(".expected-profit").textContent="-";
+       row.querySelector(".expected-roi").textContent="-";
+       row.querySelector(".judgement").textContent="-";
+
+       return;
+     }
+
+     const payout=100*odds;
+     const expected=payout*probability;
+     const profit=expected-100;
+     const roi=(expected/100)*100;
+
+     row.querySelector(".expected-payout").textContent=
+       `${expected.toFixed(1)}円`;
+
+     row.querySelector(".expected-profit").textContent=
+       `${profit.toFixed(1)}円`;
+
+     row.querySelector(".expected-roi").textContent=
+       `${roi.toFixed(1)}%`;
+
+     row.querySelector(".judgement").innerHTML=
+       roi>=110
+       ? `<span class="good">買い候補</span>`
+       : roi>=100
+       ? `<span>検討</span>`
+       : `<span class="bad">見送り</span>`;
+
+   });
+
+ });
+
+}
+
+
+/* =========================================
+   期待値再計算
+========================================= */
+
+function recalculateEV(){
+
+ const rows=[...document.querySelectorAll("#trifecta tr")];
+
+ const results=[];
+
+ rows.forEach(row=>{
+
+   const odds=parseFloat(
+     row.querySelector("[data-odds]")?.value
+   );
+
+   const p=parseFloat(
+     row.children[2].textContent.replace("%","")
+   )/100;
+
+   if(!Number.isFinite(odds)||!Number.isFinite(p))return;
+
+   const payout=100*odds;
+   const expected=payout*p;
+   const profit=expected-100;
+   const roi=expected;
+
+   results.push({
+     combo:row.children[1].textContent.trim(),
+     probability:p,
+     odds,
+     expected,
+     profit,
+     roi
+   });
+
+ });
+
+ results.sort((a,b)=>b.roi-a.roi);
+
+ if(!results.length){
+
+   $("finalRecommendation").innerHTML=
+   `<div class="status">オッズを入力した買い目がありません。</div>`;
+
+   return;
+ }
+
+ const top=results.slice(0,10);
+
+ $("finalRecommendation").innerHTML=`
+
+ <div class="status green">
+
+ <div class="big">
+期待値上位
+ </div>
+
+ <p>
+入力されたオッズを基準に期待回収率を計算しました。
+ </p>
+
+ </div>
+
+ <div class="tablewrap">
+
+ <table>
+
+ <thead>
+ <tr>
+ <th>順位</th>
+ <th>買い目</th>
+ <th>的中確率</th>
+ <th>オッズ</th>
+ <th>期待払戻</th>
+ <th>期待収支</th>
+ <th>期待回収率</th>
+ </tr>
+ </thead>
+
+ <tbody>
+
+ ${top.map((x,i)=>`
+
+ <tr class="${i===0?'rank1':''}">
+
+ <td>${i+1}</td>
+
+ <td class="buy">${x.combo}</td>
+
+ <td>${(x.probability*100).toFixed(2)}%</td>
+
+ <td>${x.odds.toFixed(1)}倍</td>
+
+ <td>${x.expected.toFixed(1)}円</td>
+
+ <td class="${x.profit>=0?'good':'bad'}">
+ ${x.profit.toFixed(1)}円
+ </td>
+
+ <td class="${x.roi>=100?'good':'bad'}">
+ ${x.roi.toFixed(1)}%
+ </td>
+
+ </tr>
+
+ `).join("")}
+
+ </tbody>
+
+ </table>
+
+ </div>
+
+ <div class="status blue">
+
+ <b>注意：</b>
+この期待値は現在の予想モデルが算出した確率を基準にしています。
+実際の払戻や利益を保証するものではありません。
+
+ </div>
+
+ `;
+
+}
+
+
+/* =========================================
+   メイン予想処理
+========================================= */
+
+function runPrediction(){
+
+ qualityCheck();
+
+ const missing=
+   [...document.querySelectorAll(".red")].length;
+
+ /*
+   最低限、開催場・R・6艇の基本データが必要。
+ */
+ if(!text("venue") || !text("race")){
+
+   $("calcStatus").className="status red";
+   $("calcStatus").textContent=
+   "開催場とレース番号を入力してください。";
+
+   return;
+ }
+
+ for(const i of boatNumbers){
+
+   if(
+     !text("class"+i) ||
+     !Number.isFinite(num("nat"+i,NaN)) ||
+     !Number.isFinite(num("local"+i,NaN)) ||
+     !Number.isFinite(num("st"+i,NaN))
+   ){
+
+     $("calcStatus").className="status red";
+     $("calcStatus").textContent=
+     `${i}号艇の選手・級別・全国勝率・当地勝率・平均STを入力してください。`;
+
+     return;
+   }
+
+ }
+
+ $("calcStatus").className="status blue";
+ $("calcStatus").textContent=
+ "計算中…6艇評価 → 全周展開 → 着順確率 → 3連単120通りを生成しています。";
+
+ setTimeout(()=>{
+
+   const evaluations=calculateEvaluations();
+
+   const flow=generateRaceFlow(evaluations);
+
+   const probabilities=
+     calculateFinishProbabilities(evaluations);
+
+   const trifecta=
+     calculateTrifecta(probabilities);
+
+   prediction={
+     evaluations,
+     flow,
+     probabilities,
+     trifecta
+   };
+
+   renderEvaluation(evaluations);
+   renderRaceFlow(flow);
+   renderProbabilities(probabilities);
+   renderTrifecta(trifecta);
+
+   $("evaluationSection").classList.remove("hide");
+   $("raceFlowSection").classList.remove("hide");
+   $("probabilitySection").classList.remove("hide");
+   $("trifectaSection").classList.remove("hide");
+   $("oddsSection").classList.remove("hide");
+   $("finalSection").classList.remove("hide");
+
+   $("calcStatus").className="status green";
+   $("calcStatus").innerHTML=
+   `<b>予想計算完了。</b><br>
+    6艇評価 → 全周展開 → 着順確率 → 3連単120通りを生成しました。`;
+
+   window.scrollTo({
+     top:$("evaluationSection").offsetTop-70,
+     behavior:"smooth"
+   });
+
+ },100);
+
+}
+
+
+/* =========================================
+   品質チェック
+========================================= */
+
+function qualityCheck(){
+
+ let missing=0;
+
+ if(!text("venue"))missing++;
+ if(!text("race"))missing++;
+
+ boatNumbers.forEach(i=>{
+
+   [
+     "name",
+     "class",
+     "nat",
+     "local",
+     "st",
+     "motorNo"
+   ].forEach(k=>{
+
+     if(!text(k+i))missing++;
+
+   });
+
+ });
+
+ $("quality").className=
+   "status "+(missing?"red":"green");
+
+ $("quality").innerHTML=
+   missing
+   ? `入力・不足項目：<b>${missing}</b>`
+   : `<b>必須データ入力済み。</b>予想計算へ進めます。`;
+
+}
+
+
+/* =========================================
+   保存
+========================================= */
+
+const ids=()=>[
+ ...document.querySelectorAll("input,select")
+].map(x=>x.id).filter(Boolean);
+
+
+function saveDraft(){
+
+ const d={};
+
+ ids().forEach(id=>{
+   d[id]=$(id).value;
+ });
+
+ localStorage.setItem(
+   "boat_prediction_v04",
+   JSON.stringify(d)
+ );
+
+ $("saveMsg").classList.remove("hide");
+
+ $("saveMsg").textContent=
+ "入力内容をこのiPhoneのブラウザに保存しました。";
+
+}
+
+
+function loadDraft(){
+
+ const d=JSON.parse(
+   localStorage.getItem("boat_prediction_v04")||"{}"
+ );
+
+ Object.keys(d).forEach(id=>{
+
+   if($(id)){
+     $(id).value=d[id];
+   }
+
+ });
+
+ $("saveMsg").classList.remove("hide");
+
+ $("saveMsg").textContent=
+ Object.keys(d).length
+ ? "保存内容を読み込みました。"
+ : "保存データはありません。";
+
+}
+
 </script>
+
 </body>
 </html>
