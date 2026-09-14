@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>スリット隊形メーカー</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
+  background:#f4f6f8;
+  color:#222;
+}
+header{
+  background:#111827;
+  color:white;
+  padding:18px 16px;
+  text-align:center;
+  font-size:22px;
+  font-weight:bold;
+}
+.container{
+  max-width:700px;
+  margin:auto;
+  padding:16px;
+}
+.panel{
+  background:white;
+  border-radius:14px;
+  padding:16px;
+  box-shadow:0 2px 8px #0002;
+}
+.inputs{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+label{
+  font-size:13px;
+  font-weight:bold;
+}
+input{
+  width:100%;
+  margin-top:5px;
+  padding:12px 8px;
+  font-size:18px;
+  border:1px solid #bbb;
+  border-radius:8px;
+  text-align:center;
+}
+button{
+  width:100%;
+  margin-top:16px;
+  padding:14px;
+  border:0;
+  border-radius:10px;
+  background:#2563eb;
+  color:white;
+  font-size:18px;
+  font-weight:bold;
+}
+.track{
+  position:relative;
+  height:250px;
+  margin-top:20px;
+  overflow:hidden;
+  border-radius:12px;
+  background:
+    linear-gradient(to bottom,#dfe7ee 1px,transparent 1px);
+  background-size:100% 50px;
+  border:2px solid #b8c2cc;
+}
+.start{
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:2px;
+  background:#777;
+}
+.boat{
+  position:absolute;
+  width:58px;
+  height:38px;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:white;
+  font-size:17px;
+  font-weight:bold;
+  box-shadow:0 2px 5px #0004;
+  transform:translateY(-50%);
+}
+.b1{background:#fff;color:#111;border:2px solid #111}
+.b2{background:#111}
+.b3{background:#e63946}
+.b4{background:#f59e0b}
+.b5{background:#16a34a}
+.b6{background:#2563eb}
+.st{
+  position:absolute;
+  top:-22px;
+  font-size:13px;
+  color:#333;
+  white-space:nowrap;
+}
+.result{
+  margin-top:16px;
+  font-size:16px;
+  line-height:1.6;
+}
+.note{
+  margin-top:14px;
+  color:#666;
+  font-size:12px;
+}
+</style>
+</head>
+
+<body>
+
+<header>スリット隊形メーカー</header>
+
+<div class="container">
+<div class="panel">
+
+<div class="inputs">
+<label>1号艇<input id="st1" type="number" step="0.01" placeholder="0.15"></label>
+<label>2号艇<input id="st2" type="number" step="0.01" placeholder="0.16"></label>
+<label>3号艇<input id="st3" type="number" step="0.01" placeholder="0.14"></label>
+<label>4号艇<input id="st4" type="number" step="0.01" placeholder="0.18"></label>
+<label>5号艇<input id="st5" type="number" step="0.01" placeholder="0.20"></label>
+<label>6号艇<input id="st6" type="number" step="0.01" placeholder="0.22"></label>
+</div>
+
+<button onclick="makeSlit()">スリット隊形を作成</button>
+
+<div class="track" id="track">
+  <div class="start"></div>
+</div>
+
+<div class="result" id="result"></div>
+
+<div class="note">
+※入力したSTの速い艇ほどスリット前方に表示します。
+</div>
+
+</div>
+</div>
+
+<script>
+function makeSlit(){
+
+  const boats=[];
+
+  for(let i=1;i<=6;i++){
+    const v=parseFloat(document.getElementById("st"+i).value);
+
+    if(isNaN(v)){
+      alert(i+"号艇のSTを入力してください");
+      return;
+    }
+
+    boats.push({no:i,st:v});
+  }
+
+  boats.sort((a,b)=>a.st-b.st);
+
+  const track=document.getElementById("track");
+
+  track.querySelectorAll(".boat").forEach(e=>e.remove());
+
+  const min=Math.min(...boats.map(x=>x.st));
+  const max=Math.max(...boats.map(x=>x.st));
+
+  boats.forEach((boat,index)=>{
+
+    let x;
+
+    if(max===min){
+      x=50;
+    }else{
+      x=8+(boat.st-min)/(max-min)*84;
+    }
+
+    const y=35+index*34;
+
+    const div=document.createElement("div");
+
+    div.className="boat b"+boat.no;
+    div.style.left=x+"%";
+    div.style.top=y+"%";
+
+    div.innerHTML=
+      boat.no+"号艇"+
+      '<span class="st">ST '+boat.st.toFixed(2)+'</span>';
+
+    track.appendChild(div);
+  });
+
+  document.getElementById("result").innerHTML=
+    "<b>スリット順</b>　"+
+    boats.map(x=>x.no+"号艇").join(" → ");
+}
+</script>
+
+</body>
+</html>
